@@ -1,0 +1,495 @@
+/* ==============================
+   STUDY OS DASHBOARD v2
+============================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:'Inter',sans-serif;
+    background:#0f172a;
+    color:white;
+}
+
+/* Main */
+
+.dashboard{
+
+    padding:35px;
+
+}
+
+/* ================= HERO ================= */
+
+.hero{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:35px;
+
+}
+
+.hero h1{
+
+    font-size:38px;
+
+    font-weight:700;
+
+}
+
+.hero p{
+
+    color:#94a3b8;
+
+    margin-top:8px;
+
+}
+
+.clock-box{
+
+    text-align:right;
+
+}
+
+.clock-box h2{
+
+    font-size:34px;
+
+    color:#38bdf8;
+
+}
+
+.clock-box p{
+
+    color:#cbd5e1;
+
+}
+
+/* ================= GRID ================= */
+
+.stats-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+
+    gap:25px;
+
+    margin-bottom:30px;
+
+}
+
+.bottom-grid{
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr 1fr;
+
+    gap:25px;
+
+}
+
+/* ================= CARD ================= */
+
+.card{
+
+    background:#1e293b;
+
+    border-radius:18px;
+
+    padding:25px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+
+    transition:.35s;
+
+}
+
+.card:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:0 15px 40px rgba(59,130,246,.25);
+
+}
+
+.card h2{
+
+    margin-bottom:20px;
+
+}
+
+.card h3{
+
+    margin-bottom:15px;
+
+    color:#cbd5e1;
+
+}
+
+.card h1{
+
+    font-size:42px;
+
+    margin-bottom:20px;
+
+}
+
+/* ================= BUTTONS ================= */
+
+.btn-group{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:15px;
+
+}
+
+.btn{
+
+    border:none;
+
+    padding:12px 22px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+    color:white;
+
+}
+
+.green{
+
+    background:#22c55e;
+
+}
+
+.orange{
+
+    background:#f59e0b;
+
+}
+
+.red{
+
+    background:#ef4444;
+
+}
+
+.btn:hover{
+
+    transform:scale(1.05);
+
+}
+
+/* ================= PROGRESS ================= */
+
+progress{
+
+    width:100%;
+
+    height:18px;
+
+    margin-top:15px;
+
+    border-radius:20px;
+
+    overflow:hidden;
+
+}
+
+progress::-webkit-progress-bar{
+
+    background:#334155;
+
+}
+
+progress::-webkit-progress-value{
+
+    background:#3b82f6;
+
+}
+
+/* ================= TASKS ================= */
+
+#taskList{
+
+    list-style:none;
+
+}
+
+#taskList li{
+
+    margin:14px 0;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+/* ================= QUOTE ================= */
+
+#quote{
+
+    color:#cbd5e1;
+
+    font-style:italic;
+
+    line-height:1.8;
+
+}
+
+/* ================= CANVAS ================= */
+
+canvas{
+
+    width:100%!important;
+
+    height:300px!important;
+
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media(max-width:1000px){
+
+.bottom-grid{
+
+grid-template-columns:1fr;
+
+}
+
+.hero{
+
+flex-direction:column;
+
+align-items:flex-start;
+
+gap:20px;
+
+}
+
+.clock-box{
+
+text-align:left;
+
+}
+
+}
+
+/* ===========================
+   SUBJECT MODAL
+=========================== */
+
+.modal{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.75);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+    backdrop-filter:blur(6px);
+}
+
+.modal-box{
+    width:500px;
+    max-width:95%;
+    background:#1d2738;
+    border-radius:20px;
+    padding:35px;
+    box-shadow:0 25px 60px rgba(0,0,0,.45);
+    border:1px solid rgba(255,255,255,.08);
+    animation:popup .25s ease;
+}
+
+@keyframes popup{
+
+    from{
+        transform:scale(.85);
+        opacity:0;
+    }
+
+    to{
+        transform:scale(1);
+        opacity:1;
+    }
+
+}
+
+.modal-box h2{
+    color:white;
+    margin-bottom:25px;
+    font-size:28px;
+}
+
+.modal-box input{
+
+    width:100%;
+
+    padding:14px 16px;
+
+    margin-bottom:18px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#2a3548;
+
+    color:white;
+
+    font-size:16px;
+
+    outline:none;
+
+}
+
+.modal-box input:focus{
+
+    border:2px solid #3B82F6;
+
+}
+
+.modal-buttons{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:15px;
+
+}
+
+.modal-buttons button{
+
+    flex:1;
+
+}
+
+
+/* ===========================
+   SUBJECT CARDS
+=========================== */
+
+.subject-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+
+    gap:25px;
+
+    margin-top:25px;
+
+}
+
+.subject-card{
+
+    background:#1d2738;
+
+    border-radius:18px;
+
+    padding:25px;
+
+    box-shadow:0 12px 25px rgba(0,0,0,.25);
+
+    transition:.3s;
+
+    border-top:4px solid #3B82F6;
+
+}
+
+.subject-card:hover{
+
+    transform:translateY(-8px);
+
+    box-shadow:0 20px 40px rgba(0,0,0,.35);
+
+}
+
+.subject-icon{
+
+    font-size:45px;
+
+    margin-bottom:15px;
+
+}
+
+.subject-card h2{
+
+    color:white;
+
+    margin-bottom:10px;
+
+}
+
+.subject-card p{
+
+    color:#aab4c5;
+
+}
+
+.progress{
+
+    width:100%;
+
+    height:10px;
+
+    background:#2d3748;
+
+    border-radius:10px;
+
+    overflow:hidden;
+
+    margin:18px 0;
+
+}
+
+.progress-fill{
+
+    height:100%;
+
+    background:linear-gradient(90deg,#3B82F6,#06B6D4);
+
+    border-radius:10px;
+
+}
+
+.card-buttons{
+
+    display:flex;
+
+    gap:10px;
+
+    margin-top:20px;
+
+}
+
+.card-buttons .btn{
+
+    flex:1;
+
+}
