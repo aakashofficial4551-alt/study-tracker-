@@ -17,7 +17,7 @@ from routes.calendar import calendar_bp
 from routes.analytics import analytics_bp
 from routes.settings import settings_bp
 from routes.task import task_bp
-
+from routes.habits import habits_bp
 
 def create_app():
     app = Flask(__name__)
@@ -44,6 +44,7 @@ def create_app():
     app.register_blueprint(analytics_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(task_bp)
+    app.register_blueprint(habits_bp)
 
     # Create Database
     with app.app_context():
