@@ -1,6 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from datetime import datetime, timedelta
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+
 from extensions import db
-from models import Subject
+from models import Subject, Chapter
+from models.mock_test import TestRecord
 
 subject_bp = Blueprint(
     "subject",
@@ -9,27 +13,59 @@ subject_bp = Blueprint(
 )
 
 
-@subject_bp.route("/")
-def subjects():
+def get_ist_now():
+    return datetime.utcnow() + timedelta(hours=5, minutes=30)
 
+
+@subject_bp.route("/")
+@login_required
+def subjects():
+    now_ist = get_ist_now()
     all_subjects = Subject.query.order_by(Subject.name).all()
+
+    total_subjects = len(all_subjects)
+    total_chapters = Chapter.query.count()
+    completed_chapters = Chapter.query.filter_by(completed=True).count()
+    pending_chapters = total_chapters - completed_chapters
+    syllabus_progress = (
+        round((completed_chapters / total_chapters) * 100)
+        if total_chapters > 0 else 0
+    )
+
+    tests = (
+        TestRecord.query
+        .filter_by(user_id=current_user.id)
+        .order_by(TestRecord.test_date.desc(), TestRecord.id.desc())
+        .all()
+    )
+
+    avg_test_pct = (
+        round(sum(t.percentage for t in tests) / len(tests), 1)
+        if tests else 0
+    )
 
     return render_template(
         "subjects/index.html",
-        subjects=all_subjects
+        subjects=all_subjects,
+        total_subjects=total_subjects,
+        total_chapters=total_chapters,
+        completed_chapters=completed_chapters,
+        pending_chapters=pending_chapters,
+        syllabus_progress=syllabus_progress,
+        tests=tests,
+        avg_test_pct=avg_test_pct,
+        today_str=now_ist.strftime("%Y-%m-%d"),
+        now_time_str=now_ist.strftime("%H:%M"),
     )
 
 
 @subject_bp.route("/add", methods=["POST"])
+@login_required
 def add_subject():
-
-    name = request.form.get("name")
-
-    icon = request.form.get("icon")
-
-    color = request.form.get("color")
-
-    chapters = request.form.get("chapters")
+    name = (request.form.get("name") or "").strip()
+    icon = (request.form.get("icon") or "📘").strip()
+    color = request.form.get("color") or "#ff2a85"
+    chapters = int(request.form.get("chapters") or 0)
 
     if not name:
         return redirect(url_for("subject.subjects"))
@@ -38,23 +74,81 @@ def add_subject():
         name=name,
         icon=icon,
         color=color,
-        total_chapters=int(chapters)
+        total_chapters=chapters
     )
-
     db.session.add(new_subject)
-
     db.session.commit()
-
+    flash(f"Subject '{name}' added!", "success")
     return redirect(url_for("subject.subjects"))
 
 
 @subject_bp.route("/delete/<int:id>")
+@login_required
 def delete_subject(id):
-
     subject = Subject.query.get_or_404(id)
-
     db.session.delete(subject)
-
     db.session.commit()
+    flash("Subject deleted.", "info")
+    return redirect(url_for("subject.subjects"))
 
+
+@subject_bp.route("/test/add", methods=["POST"])
+@login_required
+def add_test():
+    test_name = (request.form.get("test_name") or "").strip()
+    date_str = request.form.get("test_date")
+    test_time = (request.form.get("test_time") or "").strip()
+    subject_name = (request.form.get("subject_name") or "").strip()
+
+    try:
+        marks_obtained = float(request.form.get("marks_obtained") or 0)
+        total_marks = float(request.form.get("total_marks") or 100)
+    except ValueError:
+        flash("Please enter valid numbers for marks.", "danger")
+        return redirect(url_for("subject.subjects"))
+
+    if not test_name or not subject_name:
+        flash("Test Name aur Subject dono zaroori hain.", "warning")
+        return redirect(url_for("subject.subjects"))
+
+    try:
+        parsed_date = (
+            datetime.strptime(date_str, "%Y-%m-%d").date()
+            if date_str
+            else get_ist_now().date()
+        )
+    except ValueError:
+        parsed_date = get_ist_now().date()
+
+    # Format 24h time to clean 12h display if provided
+    display_time = test_time
+    if test_time and ":" in test_time:
+        try:
+            display_time = datetime.strptime(test_time, "%H:%M").strftime("%I:%M %p")
+        except ValueError:
+            display_time = test_time
+
+    record = TestRecord(
+        user_id=current_user.id,
+        test_name=test_name,
+        test_date=parsed_date,
+        test_time=display_time,
+        subject_name=subject_name,
+        marks_obtained=marks_obtained,
+        total_marks=total_marks if total_marks > 0 else 100.0,
+    )
+    db.session.add(record)
+    db.session.commit()
+    flash(f"Test saved: {test_name} ({marks_obtained:g}/{total_marks:g})", "success")
+    return redirect(url_for("subject.subjects"))
+
+
+@subject_bp.route("/test/delete/<int:id>", methods=["POST"])
+@login_required
+def delete_test(id):
+    record = TestRecord.query.get_or_404(id)
+    if record.user_id == current_user.id:
+        db.session.delete(record)
+        db.session.commit()
+        flash("Test record deleted.", "info")
     return redirect(url_for("subject.subjects"))
