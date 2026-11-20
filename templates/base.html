@@ -263,7 +263,7 @@
     {% set ep = request.endpoint or '' %}
 
     <nav class="navbar">
-        <a href="{{ url_for('dashboard.dashboard') if current_user.is_authenticated else url_for('auth.login') }}" class="brand">STUDY OS</a>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="brand">STUDY OS</a>
 
         <div class="desktop-nav">
             {% if current_user.is_authenticated %}
@@ -272,14 +272,19 @@
                 <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
                 <a href="{{ url_for('gym.index') }}" class="{% if 'gym' in ep %}active{% endif %}">Gym</a>
                 <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subjects</a>
-                <a href="{{ url_for('analytics.home') }}" class="{% if 'analytics' in ep %}active{% endif %}">Analytics</a>
-                <a href="{{ url_for('calendar.home') }}" class="{% if 'calendar' in ep %}active{% endif %}">Calendar</a>
-                <a href="{{ url_for('auth.logout') }}" class="logout-pill">Logout</a>
+                {% if not config.get('DISABLE_AUTH') %}
+                    <a href="{{ url_for('auth.logout') }}" class="logout-pill">Logout</a>
+                {% endif %}
             {% else %}
                 <a href="{{ url_for('auth.login') }}" class="{% if 'login' in ep %}active{% endif %}">Login</a>
                 <a href="{{ url_for('auth.register') }}" class="{% if 'register' in ep %}active{% endif %}">Register</a>
             {% endif %}
         </div>
+
+        {% if current_user.is_authenticated and not config.get('DISABLE_AUTH') %}
+            <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
+        {% endif %}
+    </nav>
 
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
