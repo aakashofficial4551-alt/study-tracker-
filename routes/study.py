@@ -80,18 +80,10 @@ def home():
 def save():
     mode = request.form.get("mode", "study").strip().lower()
     mode_label = "Running Mode" if mode == "running" else "Study Mode"
-
     duration = int(request.form.get("duration") or 0)
-    quick_mins = request.form.get("quick_mins")
-
-    if quick_mins:
-        try:
-            duration = int(float(quick_mins) * 60)
-        except ValueError:
-            duration = 0
 
     if duration <= 0:
-        flash("Timer 0 sec par hai — pehle timer chalao ya minutes daalo.", "warning")
+        flash("Start the timer before saving.", "warning")
         return redirect(url_for("study.home"))
 
     now_ist = get_ist_now()
