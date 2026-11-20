@@ -2,54 +2,244 @@
 {% block title %}Dashboard - StudyOS{% endblock %}
 
 {% block content %}
-<h1 style="margin-bottom: 20px;">Welcome, {{ user.full_name or user.username }} 👋</h1>
+<style>
+    .hero-banner {
+        position: relative;
+        background: linear-gradient(135deg, rgba(255, 46, 76, 0.18) 0%, rgba(255, 42, 133, 0.14) 55%, rgba(16, 185, 129, 0.12) 100%);
+        border: 1px solid rgba(255, 42, 133, 0.35);
+        border-radius: 18px;
+        padding: 18px;
+        margin-bottom: 14px;
+    }
+    .hero-greet {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        font-weight: 600;
+    }
+    .hero-quote {
+        font-size: 1.35rem;
+        font-weight: 900;
+        margin: 6px 0 8px 0;
+        letter-spacing: -0.3px;
+        background: linear-gradient(90deg, #ffffff 0%, #ff7eb3 60%, #ff2e4c 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .hero-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: #94a3b8;
+    }
+    .streak-chip {
+        background: rgba(16, 185, 129, 0.16);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+    }
+    .kpi-card {
+        background: #121219;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 15px;
+        padding: 14px;
+    }
+    .kpi-label {
+        font-size: 0.76rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .kpi-value {
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin-top: 4px;
+    }
+    .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+    .quick-tile {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-decoration: none;
+        background: #121219;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 15px;
+        padding: 14px;
+        min-height: 92px;
+        transition: transform 0.12s ease, border-color 0.2s;
+    }
+    .quick-tile:active { transform: scale(0.97); }
+    .quick-tile .qt-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1.25rem;
+    }
+    .quick-tile .qt-title {
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: #f8fafc;
+        margin-top: 8px;
+    }
+    .quick-tile .qt-sub {
+        font-size: 0.76rem;
+        color: #94a3b8;
+    }
+    .tile-pink { border-top: 3px solid #ff2a85; }
+    .tile-green { border-top: 3px solid #10b981; }
+    .tile-red { border-top: 3px solid #ff2e4c; }
+    .tile-blue { border-top: 3px solid #3b82f6; }
 
+    .today-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 10px;
+    }
+    .pill {
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        background: #0b0b10;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        color: #64748b;
+    }
+    .pill.done {
+        background: rgba(16, 185, 129, 0.16);
+        border-color: rgba(16, 185, 129, 0.45);
+        color: #34d399;
+    }
+    .pill.warn {
+        background: rgba(255, 46, 76, 0.16);
+        border-color: rgba(255, 46, 76, 0.45);
+        color: #fb7185;
+    }
+</style>
+
+<!-- MOTIVATION HERO -->
+<div class="hero-banner">
+    <div class="hero-greet">Hey {{ user.full_name or user.username }} 👋</div>
+    <div class="hero-quote">"If not today, then when?"</div>
+    <div class="hero-meta">
+        <span>{{ today.strftime('%A, %d %b %Y') }}</span>
+        <span class="streak-chip">🔥 {{ streak }} Day Streak</span>
+    </div>
+</div>
+
+<!-- LIVE KPI STATS -->
 <div class="stats-grid">
-    <div class="card">
-        <p style="color:#94a3b8;">Total Subjects</p>
-        <h2>{{ total_subjects }}</h2>
+    <div class="kpi-card">
+        <div class="kpi-label">Today's Score</div>
+        <div class="kpi-value" style="color: {% if today_score >= 70 %}#22c55e{% elif today_score >= 40 %}#f59e0b{% else %}#ff2e4c{% endif %};">
+            {{ today_score }}%
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ today_score }}%;"></div>
+        </div>
     </div>
-    <div class="card">
-        <p style="color:#94a3b8;">Total Chapters</p>
-        <h2>{{ total_chapters }}</h2>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Study Timer</div>
+        <div class="kpi-value" style="color: #ff2a85;">{{ study_time_str }}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Total logged</div>
     </div>
-    <div class="card">
-        <p style="color:#94a3b8;">Completed</p>
-        <h2 style="color:#22c55e;">{{ completed_chapters }}</h2>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Running</div>
+        <div class="kpi-value" style="color: #22c55e;">{{ running_time_str }}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;">Total logged</div>
     </div>
-    <div class="card">
-        <p style="color:#94a3b8;">Pending</p>
-        <h2 style="color:#f59e0b;">{{ pending_chapters }}</h2>
+
+    <div class="kpi-card">
+        <div class="kpi-label">Next Gym Day</div>
+        <div class="kpi-value" style="color: #ff2e4c;">Day {{ next_gym_day }}</div>
+        <div style="font-size:0.75rem; color:#cbd5e1; margin-top:4px;">{{ next_gym_title }}</div>
     </div>
 </div>
 
-<div class="card">
-    <h3>Overall Progress: {{ progress }}%</h3>
-    <div class="progress-bar">
-        <div class="progress-fill" style="width: {{ progress }}%;"></div>
-    </div>
+<!-- QUICK MOBILE APP TILES -->
+<div class="quick-grid">
+    <a href="{{ url_for('habits.daily_tracker') }}" class="quick-tile tile-green">
+        <div class="qt-top">
+            <span>✅</span>
+            <span style="font-size:0.75rem; color:#34d399; font-weight:700;">DAILY</span>
+        </div>
+        <div>
+            <div class="qt-title">Task & Progress</div>
+            <div class="qt-sub">Tick habits, thoughts & records</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('study.home') }}" class="quick-tile tile-pink">
+        <div class="qt-top">
+            <span>⏱️</span>
+            <span style="font-size:0.75rem; color:#ff2a85; font-weight:700;">FOCUS</span>
+        </div>
+        <div>
+            <div class="qt-title">Timer</div>
+            <div class="qt-sub">Study Mode & Running Mode</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('gym.index', day=next_gym_day) }}" class="quick-tile tile-red">
+        <div class="qt-top">
+            <span>🏋️</span>
+            <span style="font-size:0.75rem; color:#ff2e4c; font-weight:700;">DAY {{ next_gym_day }}</span>
+        </div>
+        <div>
+            <div class="qt-title">Gym Workout</div>
+            <div class="qt-sub">{{ next_gym_title }}</div>
+        </div>
+    </a>
+
+    <a href="{{ url_for('subject.subjects') }}" class="quick-tile tile-blue">
+        <div class="qt-top">
+            <span>📚</span>
+            <span style="font-size:0.75rem; color:#60a5fa; font-weight:700;">{{ total_subjects }} SUBJ</span>
+        </div>
+        <div>
+            <div class="qt-title">Subjects</div>
+            <div class="qt-sub">Syllabus: {{ syllabus_progress }}% done</div>
+        </div>
+    </a>
 </div>
 
+<!-- TODAY'S QUICK STATUS -->
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3>Recent Subjects</h3>
-        <a href="{{ url_for('subject.subjects') }}" class="btn btn-sm">Manage Subjects</a>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Today's Snapshot</h3>
+        <a href="{{ url_for('habits.daily_tracker') }}" class="btn btn-sm">Update</a>
     </div>
-    {% if recent_subjects %}
-        <table>
-            <tr>
-                <th>Subject</th>
-                <th>Total Chapters</th>
-            </tr>
-            {% for s in recent_subjects %}
-            <tr>
-                <td>{{ s.icon or '📘' }} {{ s.name }}</td>
-                <td>{{ s.total_chapters }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+
+    {% if today_log %}
+        <div class="today-pills">
+            <span class="pill {% if today_log.study %}done{% endif %}">Study</span>
+            <span class="pill {% if today_log.gym %}done{% endif %}">Gym</span>
+            <span class="pill {% if today_log.running %}done{% endif %}">Running</span>
+            <span class="pill {% if today_log.diet %}done{% endif %}">Clean Diet</span>
+            <span class="pill {% if today_log.sleep %}done{% endif %}">Sleep</span>
+            <span class="pill {% if today_log.bath %}done{% endif %}">Bath</span>
+            <span class="pill {% if today_log.insta_upload %}done{% endif %}">Insta Upload</span>
+            <span class="pill {% if today_log.better_than_yesterday %}done{% endif %}">Better Than Yesterday</span>
+            {% if today_log.bad_habit %}<span class="pill warn">Bad Habit</span>{% endif %}
+            {% if today_log.junk_food %}<span class="pill warn">Junk Food</span>{% endif %}
+            {% if today_log.social_media %}<span class="pill warn">Social Media</span>{% endif %}
+        </div>
     {% else %}
-        <p style="color:#94a3b8;">Abhi koi subject add nahi hua hai.</p>
+        <p style="color:#94a3b8; font-size:0.88rem; margin-top:10px;">
+            Aaj ka progress abhi log nahi kiya hai. <strong>Update</strong> dabao aur apna din track karo.
+        </p>
     {% endif %}
 </div>
 {% endblock %}
