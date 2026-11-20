@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Gym Split - StudyOS{% endblock %}
+
+{% block content %}
+<style>
+    .day-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .day-tab { display: block; text-decoration: none; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px; color: #cbd5e1; }
+    .day-tab.active { background: #e2e8f0; color: #0f172a; border-color: #e2e8f0; }
+    .day-tab small { display: block; font-size: 0.78rem; opacity: 0.8; margin-bottom: 4px; }
+    .day-tab strong { font-size: 1rem; }
+    .gym-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 820px) { .gym-grid { grid-template-columns: 1fr; } }
+    .ex-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; }
+    .ex-left { display: flex; align-items: center; gap: 12px; }
+    .ex-left input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+    .ex-name { font-weight: 600; color: #f8fafc; font-size: 0.95rem; }
+    .ex-sets { font-size: 0.82rem; color: #94a3b8; }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+    <div>
+        <h1>Gym 4-Day Split</h1>
+        <p style="color:#94a3b8; font-size:0.9rem; margin-top:4px;">
+            {% if last_log %}
+                Last Workout: <strong>Day {{ last_log.day_number }} ({{ last_log.day_title }})</strong> on {{ last_log.workout_date.strftime('%d %b') }}
+                &nbsp;|&nbsp; Next Suggested: <strong>Day {{ next_day }}</strong>
+            {% else %}
+                Ready to start Day 1!
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- 4-DAY SPLIT SELECTOR -->
+<div class="day-tabs">
+    {% for num, item in plan.items() %}
+    <a href="{{ url_for('gym.index', day=num) }}" class="day-tab {% if active_day == num %}active{% endif %}">
+        <small>DAY {{ num }}</small>
+        <strong>{{ item.title }}</strong>
+    </a>
+    {% endfor %}
+</div>
+
+{% set current_plan = plan[active_day] %}
+
+<form method="POST" action="{{ url_for('gym.log_workout') }}">
+    <input type="hidden" name="day_number" value="{{ active_day }}">
+
+    <div class="gym-grid">
+        <!-- LEFT: WORKOUT CHECKLIST -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div>
+                    <h2>Day {{ active_day }}: {{ current_plan.title }}</h2>
+                    <small style="color:#94a3b8;">Focus: {{ current_plan.focus }}</small>
+                </div>
+                <strong id="ex-counter">0 / {{ current_plan.exercises|length }} Done</strong>
+            </div>
+
+            {% for ex in current_plan.exercises %}
+            <label class="ex-item">
+                <div class="ex-left">
+                    <input type="checkbox" name="exercises" value="{{ ex.name }}" onchange="updateGymCount()">
+                    <span class="ex-name">{{ ex.name }}</span>
+                </div>
+                <span class="ex-sets">{{ ex.sets }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        <!-- RIGHT: SAVE WORKOUT LOG -->
+        <div class="card">
+            <h3 style="margin-bottom:12px;">Complete Workout</h3>
+
+            <label>Workout Date</label>
+            <input type="date" name="workout_date" value="{{ today.isoformat() }}" max="{{ today.isoformat() }}">
+
+            <label>Duration (minutes)</label>
+            <input type="number" name="duration_mins" min="0" max="300" value="60">
+
+            <label>Notes / Weight PR</label>
+            <textarea name="notes" rows="3" placeholder="e.g. Bench 60kg, Squats 80kg, good pump..."></textarea>
+
+            <button type="submit" class="btn" style="width:100%;">Save Day {{ active_day }} Workout</button>
+        </div>
+    </div>
+</form>
+
+<!-- WORKOUT HISTORY -->
+<div class="card" style="overflow-x:auto;">
+    <h3 style="margin-bottom:12px;">Workout History</h3>
+    {% if logs %}
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Split</th>
+            <th>Exercises</th>
+            <th>Duration</th>
+            <th>Notes</th>
+            <th>Action</th>
+        </tr>
+        {% for log in logs %}
+        <tr>
+            <td style="white-space:nowrap;"><strong>{{ log.workout_date.strftime('%d %b %Y') }}</strong></td>
+            <td>Day {{ log.day_number }} - {{ log.day_title }}</td>
+            <td>{{ log.completed_count }} / {{ log.total_count }}</td>
+            <td>{{ log.duration_mins }} min</td>
+            <td style="color:#cbd5e1; font-size:0.85rem;">{{ log.notes or '-' }}</td>
+            <td>
+                <a href="{{ url_for('gym.delete_log', id=log.id) }}" class="btn btn-danger btn-sm">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p style="color:#94a3b8;">Abhi tak koi gym workout save nahi hua hai.</p>
+    {% endif %}
+</div>
+
+<script>
+    function updateGymCount() {
+        const all = document.querySelectorAll('input[name="exercises"]');
+        const checked = document.querySelectorAll('input[name="exercises"]:checked');
+        document.getElementById('ex-counter').textContent = `${checked.length} / ${all.length} Done`;
+    }
+    updateGymCount();
+</script>
+{% endblock %}
