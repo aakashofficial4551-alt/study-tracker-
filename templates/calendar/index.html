@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Calendar - StudyOS{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <button class="btn btn-sm" onclick="changeMonth(-1)">&larr; Prev</button>
+        <h2 id="cal-title"></h2>
+        <button class="btn btn-sm" onclick="changeMonth(1)">Next &rarr;</button>
+    </div>
+    <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; text-align:center;"></div>
+</div>
+
+<script>
+    let currentDate = new Date();
+
+    function renderCalendar() {
+        const grid = document.getElementById('cal-grid');
+        const title = document.getElementById('cal-title');
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const today = new Date();
+
+        title.textContent = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+        grid.innerHTML = '';
+
+        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(d => {
+            grid.innerHTML += `<div style="font-weight:700; color:#94a3b8; padding:6px;">${d}</div>`;
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+            const bg = isToday ? '#38bdf8' : '#0f172a';
+            const color = isToday ? '#0f172a' : '#f8fafc';
+            grid.innerHTML += `<div style="padding:12px; border-radius:8px; background:${bg}; color:${color}; font-weight:${isToday ? '700' : '400'};">${day}</div>`;
+        }
+    }
+
+    function changeMonth(delta) {
+        currentDate.setMonth(currentDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    renderCalendar();
+</script>
+{% endblock %}
