@@ -16,10 +16,6 @@ def get_ist_today():
     return (datetime.utcnow() + timedelta(hours=5, minutes=30)).date()
 
 
-def parse_bool(value):
-    return str(value).lower() in ("yes", "true", "1", "on")
-
-
 def calculate_streak(user_id, today_date):
     logs = (
         DailyProgress.query
@@ -57,6 +53,8 @@ def build_period_stats(all_logs, today_date, days_count):
             "diet_days": 0,
             "sleep_days": 0,
             "bath_days": 0,
+            "learn_new_days": 0,
+            "meditation_days": 0,
             "insta_days": 0,
             "better_days": 0,
             "clean_bad_habit": 0,
@@ -79,6 +77,8 @@ def build_period_stats(all_logs, today_date, days_count):
         "diet_days": sum(1 for l in period_logs if l.diet),
         "sleep_days": sum(1 for l in period_logs if l.sleep),
         "bath_days": sum(1 for l in period_logs if l.bath),
+        "learn_new_days": sum(1 for l in period_logs if l.learn_new),
+        "meditation_days": sum(1 for l in period_logs if l.meditation),
         "insta_days": sum(1 for l in period_logs if l.insta_upload),
         "better_days": sum(1 for l in period_logs if l.better_than_yesterday),
         "clean_bad_habit": sum(1 for l in period_logs if not l.bad_habit),
@@ -164,27 +164,31 @@ def save_daily():
         )
         db.session.add(entry)
 
-    entry.study = parse_bool(request.form.get("study"))
-    entry.gym = parse_bool(request.form.get("gym"))
-    entry.running = parse_bool(request.form.get("running"))
-    entry.diet = parse_bool(request.form.get("diet"))
-    entry.sleep = parse_bool(request.form.get("sleep"))
-    entry.bath = parse_bool(request.form.get("bath"))
-    entry.insta_upload = parse_bool(request.form.get("insta_upload"))
-    entry.better_than_yesterday = parse_bool(
-        request.form.get("better_than_yesterday")
-    )
+    # All positive checkboxes (checked = "on")
+    entry.study = "study" in request.form
+    entry.gym = "gym" in request.form
+    entry.running = "running" in request.form
+    entry.diet = "diet" in request.form
+    entry.sleep = "sleep" in request.form
+    entry.bath = "bath" in request.form
+    entry.learn_new = "learn_new" in request.form
+    entry.meditation = "meditation" in request.form
+    entry.insta_upload = "insta_upload" in request.form
+    entry.better_than_yesterday = "better_than_yesterday" in request.form
 
-    entry.bad_habit = parse_bool(request.form.get("bad_habit"))
-    entry.junk_food = parse_bool(request.form.get("junk_food"))
-    entry.social_media = parse_bool(request.form.get("social_media"))
+    # Positive UI checkboxes mapped cleanly to existing DB columns
+    entry.bad_habit = "no_bad_habits" not in request.form
+    entry.junk_food = "no_junk_food" not in request.form
+    entry.social_media = "no_social_media" not in request.form
 
+    # Side Panel Time Tracking
     entry.study_hours = float(request.form.get("study_hours") or 0)
     entry.gym_mins = int(request.form.get("gym_mins") or 0)
     entry.running_mins = int(request.form.get("running_mins") or 0)
     entry.sleep_hours = float(request.form.get("sleep_hours") or 0)
     entry.social_media_mins = int(request.form.get("social_media_mins") or 0)
 
+    # Reflections
     entry.thoughts = (request.form.get("thoughts") or "").strip()
     entry.regret = (request.form.get("regret") or "").strip()
 
@@ -192,7 +196,7 @@ def save_daily():
 
     db.session.commit()
     flash(
-        f"Task & Progress saved for {selected_date.strftime('%d %b %Y')} (Score: {entry.score}%)",
+        f"Saved for {selected_date.strftime('%d %b %Y')} • Score: {entry.score}%",
         "success"
     )
     return redirect(url_for("habits.daily_tracker", date=selected_date.isoformat()))
