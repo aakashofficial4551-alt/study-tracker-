@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Daily Progress - StudyOS{% endblock %}
+
+{% block content %}
+<style>
+    .daily-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+    .date-picker-form {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .date-picker-form input[type="date"] {
+        margin: 0;
+        width: auto;
+        padding: 8px 12px;
+    }
+    .tracker-layout {
+        display: grid;
+        grid-template-columns: 1.65fr 1fr;
+        gap: 20px;
+        align-items: start;
+    }
+    @media (max-width: 860px) {
+        .tracker-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #38bdf8;
+        margin: 18px 0 12px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .section-title:first-child {
+        margin-top: 0;
+    }
+    .habit-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+    }
+    .habit-item {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 12px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        transition: border-color 0.2s;
+    }
+    .habit-item.good-active {
+        border-color: #22c55e;
+        background: rgba(34, 197, 94, 0.08);
+    }
+    .habit-item.bad-active {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+    }
+    .habit-label {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #f8fafc;
+    }
+    .habit-sub {
+        display: block;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 400;
+    }
+    .toggle-group {
+        display: flex;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #475569;
+        flex-shrink: 0;
+    }
+    .toggle-group input[type="radio"] {
+        display: none;
+    }
+    .toggle-group label {
+        margin: 0;
+        padding: 6px 11px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        background: #1e293b;
+        color: #94a3b8;
+        user-select: none;
+        transition: 0.15s;
+    }
+    .toggle-group input[value="yes"]:checked + label.yes-good {
+        background: #22c55e;
+        color: #052e16;
+    }
+    .toggle-group input[value="no"]:checked + label.no-neutral {
+        background: #475569;
+        color: #f8fafc;
+    }
+    .toggle-group input[value="yes"]:checked + label.yes-bad {
+        background: #ef4444;
+        color: #ffffff;
+    }
+    .toggle-group input[value="no"]:checked + label.no-good {
+        background: #22c55e;
+        color: #052e16;
+    }
+    .side-panel {
+        position: sticky;
+        top: 20px;
+    }
+    .time-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #334155;
+    }
+    .time-row:last-of-type {
+        border-bottom: none;
+    }
+    .time-row label {
+        margin: 0;
+        color: #e2e8f0;
+        font-size: 0.92rem;
+    }
+    .time-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .time-input-wrap input {
+        width: 85px;
+        margin: 0;
+        padding: 7px 10px;
+        text-align: center;
+    }
+    .time-unit {
+        color: #94a3b8;
+        font-size: 0.8rem;
+        width: 34px;
+    }
+    .score-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+    .score-high { background: #14532d; color: #86efac; }
+    .score-mid { background: #78350f; color: #fde68a; }
+    .score-low { background: #7f1d1d; color: #fecaca; }
+    .badge-dot {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        margin-right: 4px;
+        background: #0f172a;
+        border: 1px solid #334155;
+    }
+</style>
+
+<div class="daily-header">
+    <div>
+        <h1>Daily Progress Tracker</h1>
+        <p style="color:#94a3b8; margin-top:4px;">
+            Log Date: <strong style="color:#f8fafc;">{{ selected_date.strftime('%A, %d %b %Y') }}</strong>
+        </p>
+    </div>
+
+    <form method="GET" action="{{ url_for('habits.daily_tracker') }}" class="date-picker-form">
+        <input type="date" name="date" value="{{ selected_date.isoformat() }}" max="{{ today.isoformat() }}">
+        <button type="submit" class="btn btn-sm">Load Date</button>
+    </form>
+</div>
+
+<!-- Top Summary Stats -->
+<div class="stats-grid">
+    <div class="card">
+        <p style="color:#94a3b8;">Selected Day Score</p>
+        <h2 id="live-score-text" style="color:#38bdf8;">{{ entry.score if entry else 0 }}%</h2>
+        <div class="progress-bar">
+            <div id="live-score-bar" class="progress-fill" style="width: {{ entry.score if entry else 0 }}%;"></div>
+        </div>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">Logging Streak</p>
+        <h2 style="color:#22c55e;">{{ streak }} Days</h2>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">7-Day Avg Score</p>
+        <h2>{{ avg_score }}%</h2>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">7-Day Study Total</p>
+        <h2 style="color:#a78bfa;">{{ total_study_7d }} hrs</h2>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('habits.save_daily') }}" id="daily-form">
+    <input type="hidden" name="log_date" value="{{ selected_date.isoformat() }}">
+
+    <div class="tracker-layout">
+        <!-- LEFT MAIN PANEL: DAILY TICKS & REFLECTIONS -->
+        <div>
+            <div class="card">
+                <div class="section-title">Core Routine (Tick Yes / No)</div>
+                <div class="habit-grid">
+                    {% set positive_habits = [
+                        ('study', 'Study', 'Padhai ki?'),
+                        ('gym', 'Gym', 'Workout kiya?'),
+                        ('running', 'Running', 'Cardio / Run?'),
+                        ('diet', 'Clean Diet', 'Healthy khaya?'),
+                        ('sleep', 'Good Sleep', 'Proper neend?'),
+                        ('bath', 'Bath', 'Nahaya?')
+                    ] %}
+                    {% for field, label, sub in positive_habits %}
+                    {% set val = entry|attr(field) if entry else False %}
+                    <div class="habit-item" data-type="positive">
+                        <div>
+                            <span class="habit-label">{{ label }}</span>
+                            <span class="habit-sub">{{ sub }}</span>
+                        </div>
+                        <div class="toggle-group">
+                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_yes" class="yes-good">YES</label>
+                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_no" class="no-neutral">NO</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="section-title" style="color:#f59e0b;">Discipline & Control (No = Better)</div>
+                <div class="habit-grid">
+                    {% set control_habits = [
+                        ('bad_habit', 'Bad Habit', 'Koi buri aadat hui?'),
+                        ('junk_food', 'Junk Food', 'Bahar / junk khaya?'),
+                        ('social_media', 'Social Media', 'Time waste kiya?')
+                    ] %}
+                    {% for field, label, sub in control_habits %}
+                    {% set val = entry|attr(field) if entry else False %}
+                    <div class="habit-item" data-type="avoid">
+                        <div>
+                            <span class="habit-label">{{ label }}</span>
+                            <span class="habit-sub">{{ sub }}</span>
+                        </div>
+                        <div class="toggle-group">
+                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_yes" class="yes-bad">YES</label>
+                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_no" class="no-good">NO</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="section-title" style="color:#a78bfa;">Growth & Social Output</div>
+                <div class="habit-grid">
+                    {% set growth_habits = [
+                        ('insta_upload', 'Insta Photo Upload', 'Post / Story dala?'),
+                        ('better_than_yesterday', 'Better Than Yesterday', 'Kal se behtar tha?')
+                    ] %}
+                    {% for field, label, sub in growth_habits %}
+                    {% set val = entry|attr(field) if entry else False %}
+                    <div class="habit-item" data-type="positive">
+                        <div>
+                            <span class="habit-label">{{ label }}</span>
+                            <span class="habit-sub">{{ sub }}</span>
+                        </div>
+                        <div class="toggle-group">
+                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_yes" class="yes-good">YES</label>
+                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
+                            <label for="{{ field }}_no" class="no-neutral">NO</label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- DAILY THOUGHTS & REGRET -->
+            <div class="card">
+                <div class="section-title">Daily Reflection & Notes</div>
+                <label>Any Thought (Aaj ka koi vichar / win / learning)</label>
+                <textarea name="thoughts" rows="3" placeholder="Aaj kya accha raha ya kya naya seekha...">{{ entry.thoughts if entry else '' }}</textarea>
+
+                <label style="color:#fca5a5;">Any Regret (Koi pachtawa jo kal repeat nahi karna)</label>
+                <textarea name="regret" rows="3" placeholder="Agar koi time waste ya mistake hui to yahan likho...">{{ entry.regret if entry else '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE PANEL: SEPARATE TIME TRACKER -->
+        <div class="side-panel">
+            <div class="card" style="border-color:#38bdf8;">
+                <div class="section-title" style="margin-bottom:6px;">Time Breakdown</div>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:14px;">
+                    Kitna time kis cheez ko diya (alag se log karo):
+                </p>
+
+                <div class="time-row">
+                    <label>Study Time</label>
+                    <div class="time-input-wrap">
+                        <input type="number" step="0.25" min="0" max="24" name="study_hours" value="{{ entry.study_hours if entry else 0 }}">
+                        <span class="time-unit">hrs</span>
+                    </div>
+                </div>
+
+                <div class="time-row">
+                    <label>Gym Time</label>
+                    <div class="time-input-wrap">
+                        <input type="number" min="0" max="300" name="gym_mins" value="{{ entry.gym_mins if entry else 0 }}">
+                        <span class="time-unit">min</span>
+                    </div>
+                </div>
+
+                <div class="time-row">
+                    <label>Running Time</label>
+                    <div class="time-input-wrap">
+                        <input type="number" min="0" max="300" name="running_mins" value="{{ entry.running_mins if entry else 0 }}">
+                        <span class="time-unit">min</span>
+                    </div>
+                </div>
+
+                <div class="time-row">
+                    <label>Sleep Duration</label>
+                    <div class="time-input-wrap">
+                        <input type="number" step="0.5" min="0" max="24" name="sleep_hours" value="{{ entry.sleep_hours if entry else 0 }}">
+                        <span class="time-unit">hrs</span>
+                    </div>
+                </div>
+
+                <div class="time-row">
+                    <label style="color:#fca5a5;">Social Media</label>
+                    <div class="time-input-wrap">
+                        <input type="number" min="0" max="1440" name="social_media_mins" value="{{ entry.social_media_mins if entry else 0 }}">
+                        <span class="time-unit">min</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" style="width:100%; margin-top:18px; padding:12px;">
+                    Save Daily Progress
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- RECENT HISTORY TABLE -->
+<div class="card" style="overflow-x:auto;">
+    <h3 style="margin-bottom:12px;">Recent 14 Days History</h3>
+    {% if recent_logs %}
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Score</th>
+            <th>Key Ticks</th>
+            <th>Time Logged</th>
+            <th>Better?</th>
+            <th>Action</th>
+        </tr>
+        {% for log in recent_logs %}
+        <tr>
+            <td><strong>{{ log.log_date.strftime('%d %b %Y') }}</strong></td>
+            <td>
+                <span class="score-pill {% if log.score >= 75 %}score-high{% elif log.score >= 45 %}score-mid{% else %}score-low{% endif %}">
+                    {{ log.score }}%
+                </span>
+            </td>
+            <td>
+                {% if log.study %}<span class="badge-dot">Study</span>{% endif %}
+                {% if log.gym %}<span class="badge-dot">Gym</span>{% endif %}
+                {% if log.running %}<span class="badge-dot">Run</span>{% endif %}
+                {% if log.diet %}<span class="badge-dot">Diet</span>{% endif %}
+                {% if log.insta_upload %}<span class="badge-dot">Insta</span>{% endif %}
+                {% if log.junk_food %}<span class="badge-dot" style="border-color:#ef4444; color:#fca5a5;">Junk</span>{% endif %}
+                {% if log.bad_habit %}<span class="badge-dot" style="border-color:#ef4444; color:#fca5a5;">Bad Habit</span>{% endif %}
+            </td>
+            <td style="font-size:0.85rem; color:#cbd5e1;">
+                Study: {{ log.study_hours or 0 }}h | Sleep: {{ log.sleep_hours or 0 }}h | SM: {{ log.social_media_mins or 0 }}m
+            </td>
+            <td>{{ 'Yes' if log.better_than_yesterday else 'No' }}</td>
+            <td>
+                <a href="{{ url_for('habits.daily_tracker', date=log.log_date.isoformat()) }}" class="btn btn-sm">View / Edit</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <p style="color:#94a3b8;">Abhi tak koi daily log save nahi hua hai. Upar apna aaj ka progress save karo!</p>
+    {% endif %}
+</div>
+
+<script>
+    function updateLiveScore() {
+        const items = document.querySelectorAll('.habit-item');
+        let points = 0;
+
+        items.forEach(item => {
+            const type = item.dataset.type;
+            const yesInput = item.querySelector('input[value="yes"]');
+            const isYes = yesInput && yesInput.checked;
+
+            item.classList.remove('good-active', 'bad-active');
+
+            if (type === 'positive') {
+                if (isYes) {
+                    points++;
+                    item.classList.add('good-active');
+                }
+            } else {
+                // avoid type: NO is good, YES is bad
+                if (!isYes) {
+                    points++;
+                    item.classList.add('good-active');
+                } else {
+                    item.classList.add('bad-active');
+                }
+            }
+        });
+
+        const score = Math.round((points / items.length) * 100);
+        document.getElementById('live-score-text').textContent = score + '%';
+        document.getElementById('live-score-bar').style.width = score + '%';
+    }
+
+    updateLiveScore();
+</script>
+{% endblock %}
