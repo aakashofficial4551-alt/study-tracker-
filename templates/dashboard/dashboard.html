@@ -230,15 +230,17 @@
             <span class="pill {% if today_log.diet %}done{% endif %}">Clean Diet</span>
             <span class="pill {% if today_log.sleep %}done{% endif %}">Sleep</span>
             <span class="pill {% if today_log.bath %}done{% endif %}">Bath</span>
+            <span class="pill {% if not today_log.bad_habit %}done{% endif %}">No Bad Habits</span>
+            <span class="pill {% if not today_log.junk_food %}done{% endif %}">No Junk Food</span>
+            <span class="pill {% if not today_log.social_media %}done{% endif %}">No Social Media</span>
+            <span class="pill {% if today_log.meditation %}done{% endif %}">Meditation</span>
+            <span class="pill {% if today_log.learn_new %}done{% endif %}">Learn New</span>
             <span class="pill {% if today_log.insta_upload %}done{% endif %}">Insta Upload</span>
             <span class="pill {% if today_log.better_than_yesterday %}done{% endif %}">Better Than Yesterday</span>
-            {% if today_log.bad_habit %}<span class="pill warn">Bad Habit</span>{% endif %}
-            {% if today_log.junk_food %}<span class="pill warn">Junk Food</span>{% endif %}
-            {% if today_log.social_media %}<span class="pill warn">Social Media</span>{% endif %}
         </div>
     {% else %}
         <p style="color:#94a3b8; font-size:0.88rem; margin-top:10px;">
-            Aaj ka progress abhi log nahi kiya hai. <strong>Update</strong> dabao aur apna din track karo.
+            Aaj ka progress abhi tick nahi kiya hai. <strong>Update</strong> dabao aur apna din track karo.
         </p>
     {% endif %}
 </div>
