@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Analytics - StudyOS{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 20px;">Analytics</h1>
+
+<div class="stats-grid">
+    <div class="card">
+        <p style="color:#94a3b8;">Total Subjects</p>
+        <h2>{{ total_subjects }}</h2>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">Total Chapters</p>
+        <h2>{{ total_chapters }}</h2>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">Completed</p>
+        <h2 style="color:#22c55e;">{{ completed }}</h2>
+    </div>
+    <div class="card">
+        <p style="color:#94a3b8;">Pending</p>
+        <h2 style="color:#f59e0b;">{{ pending }}</h2>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Syllabus Completion: {{ progress }}%</h3>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ progress }}%;"></div>
+    </div>
+</div>
+{% endblock %}
