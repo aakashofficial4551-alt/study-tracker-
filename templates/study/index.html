@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Study Session - StudyOS{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 20px;">Study Timer & Sessions</h1>
+
+<div class="stats-grid">
+    <div class="card">
+        <p style="color:#94a3b8;">Recent Total Hours</p>
+        <h2>{{ total_hours }} hrs</h2>
+    </div>
+    <div class="card" style="text-align:center;">
+        <p style="color:#94a3b8;">Live Timer</p>
+        <h2 id="timer-display" style="margin:8px 0; font-size:2rem;">00:00:00</h2>
+        <button type="button" class="btn btn-sm" onclick="startTimer()">Start</button>
+        <button type="button" class="btn btn-sm" style="background:#f59e0b;" onclick="pauseTimer()">Pause</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="resetTimer()">Reset</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 12px;">Save Study Session</h3>
+    <form method="POST" action="{{ url_for('study.save') }}">
+        <label>Subject</label>
+        <input list="subject-list" name="subject" placeholder="Select or type subject" required>
+        <datalist id="subject-list">
+            {% for s in subjects %}
+                <option value="{{ s.name }}">
+            {% endfor %}
+        </datalist>
+
+        <label>Chapter / Topic</label>
+        <input type="text" name="chapter" placeholder="e.g. Matrices & Determinants">
+
+        <label>Duration (in seconds)</label>
+        <input type="number" id="duration-input" name="duration" value="0" min="0" required>
+
+        <label>Focus Rating (1 to 5)</label>
+        <select name="rating">
+            <option value="5">5 - Excellent</option>
+            <option value="4">4 - Good</option>
+            <option value="3">3 - Average</option>
+            <option value="2">2 - Distracted</option>
+            <option value="1">1 - Poor</option>
+        </select>
+
+        <label>Notes</label>
+        <textarea name="notes" rows="3" placeholder="What did you cover?"></textarea>
+
+        <button type="submit" class="btn">Save Session</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 12px;">Recent Sessions</h3>
+    {% if sessions %}
+        <table>
+            <tr>
+                <th>Subject</th>
+                <th>Chapter</th>
+                <th>Duration (min)</th>
+                <th>Rating</th>
+                <th>Notes</th>
+            </tr>
+            {% for s in sessions %}
+            <tr>
+                <td>{{ s.subject }}</td>
+                <td>{{ s.chapter or '-' }}</td>
+                <td>{{ ((s.duration or 0) / 60)|round(1) }} min</td>
+                <td>{{ s.rating }}/5</td>
+                <td>{{ s.notes or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p style="color:#94a3b8;">No study sessions recorded yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    let seconds = 0;
+    let interval = null;
+
+    function updateDisplay() {
+        const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        document.getElementById('timer-display').textContent = `${hrs}:${mins}:${secs}`;
+        document.getElementById('duration-input').value = seconds;
+    }
+
+    function startTimer() {
+        if (interval) return;
+        interval = setInterval(() => { seconds++; updateDisplay(); }, 1000);
+    }
+
+    function pauseTimer() {
+        clearInterval(interval);
+        interval = null;
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        seconds = 0;
+        updateDisplay();
+    }
+</script>
+{% endblock %}
