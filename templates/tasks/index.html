@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Tasks - StudyOS{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 20px;">Tasks</h1>
+
+<div class="card">
+    <h3 style="margin-bottom: 12px;">Add Task</h3>
+    <form method="POST" action="{{ url_for('task.add') }}">
+        <label>Task Title</label>
+        <input type="text" name="title" placeholder="e.g. Solve 10 PYQs" required>
+
+        <label>Description</label>
+        <textarea name="description" rows="2" placeholder="Optional details"></textarea>
+
+        <label>Priority</label>
+        <select name="priority">
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Low">Low</option>
+        </select>
+
+        <label>Subject (Optional)</label>
+        <select name="subject_id">
+            <option value="">-- None --</option>
+            {% for s in subjects %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Due Date (Optional)</label>
+        <input type="date" name="due_date">
+
+        <button type="submit" class="btn">Add Task</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 12px;">Your Tasks</h3>
+    {% if tasks %}
+        <table>
+            <tr>
+                <th>Task</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            {% for t in tasks %}
+            <tr>
+                <td style="{% if t.completed %}text-decoration:line-through; color:#64748b;{% endif %}">
+                    <strong>{{ t.title }}</strong>
+                    {% if t.description %}<br><small style="color:#94a3b8;">{{ t.description }}</small>{% endif %}
+                </td>
+                <td>{{ t.priority or 'Medium' }}</td>
+                <td>{{ t.due_date or '-' }}</td>
+                <td>{{ 'Done' if t.completed else 'Pending' }}</td>
+                <td>
+                    {% if not t.completed %}
+                        <a href="{{ url_for('task.complete', id=t.id) }}" class="btn btn-success btn-sm">Complete</a>
+                    {% endif %}
+                    <a href="{{ url_for('task.delete', id=t.id) }}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p style="color:#94a3b8;">No tasks yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
