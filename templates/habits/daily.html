@@ -1,31 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Task & Progress - StudyOS{% endblock %}
+{% block title %}Progress - StudyOS{% endblock %}
 
 {% block content %}
 <style>
     .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
     .date-form { display: flex; align-items: center; gap: 8px; }
     .date-form input[type="date"] { margin: 0; width: auto; padding: 8px 10px; font-size: 0.9rem; }
-    .main-split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: start; }
+    .main-split { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; align-items: start; }
     @media (max-width: 880px) { .main-split { grid-template-columns: 1fr; } }
 
-    .sec-label { font-size: 0.78rem; font-weight: 800; color: #ff2a85; text-transform: uppercase; letter-spacing: 0.7px; margin: 16px 0 10px 0; }
-    .sec-label:first-child { margin-top: 0; }
-
-    .tick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 9px; }
+    .tick-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
     .tick-card {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         background: #0b0b10;
         border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 12px;
-        padding: 12px;
+        border-radius: 11px;
+        padding: 12px 14px;
         cursor: pointer;
         user-select: none;
-        transition: border-color 0.2s, background 0.2s, transform 0.1s;
+        transition: border-color 0.2s, background 0.2s;
     }
-    .tick-card:active { transform: scale(0.98); }
     .tick-card.ticked {
         border-color: rgba(34, 197, 94, 0.65);
         background: rgba(16, 185, 129, 0.12);
@@ -38,8 +38,11 @@
         flex-shrink: 0;
         cursor: pointer;
     }
-    .tick-title { font-size: 0.88rem; font-weight: 700; color: #f8fafc; display: block; line-height: 1.25; }
-    .tick-sub { font-size: 0.72rem; color: #94a3b8; display: block; margin-top: 2px; }
+    .tick-title {
+        font-size: 0.94rem;
+        font-weight: 700;
+        color: #f8fafc;
+    }
 
     .time-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
     .time-row:last-of-type { border-bottom: none; }
@@ -68,10 +71,9 @@
 
 <div class="top-bar">
     <div>
-        <h1>Task & Daily Progress</h1>
+        <h1>Progress</h1>
         <p style="color:#94a3b8; font-size:0.86rem; margin-top:3px;">
-            <strong style="color:#f8fafc;">{{ selected_date.strftime('%A, %d %b %Y') }}</strong>
-            &nbsp;•&nbsp; <span style="color:#22c55e; font-weight:700;">🔥 {{ streak }} Day Streak</span>
+            {{ selected_date.strftime('%A, %d %b %Y') }}
         </p>
     </div>
 
@@ -82,102 +84,67 @@
 </div>
 
 <div class="main-split">
-    <!-- LEFT: POSITIVE CHECKBOX TICKS + THOUGHTS + DAILY RECORD -->
+    <!-- LEFT: VERTICAL TICKS + NOTES + RECORDS -->
     <div>
         <form method="POST" action="{{ url_for('habits.save_daily') }}" id="task-form">
             <input type="hidden" name="log_date" value="{{ selected_date.isoformat() }}">
 
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>Daily Ticks</h3>
-                    <span style="font-weight:800; font-size:1.05rem; color:#22c55e;">
-                        <span id="live-tick-count">0</span>/13 &nbsp;(<span id="live-score-text">{{ entry.score if entry else 0 }}%</span>)
+                <div style="display:flex; justify-content:flex-end; align-items:center;">
+                    <span style="font-weight:800; font-size:0.95rem; color:#22c55e;">
+                        <span id="live-tick-count">0</span>/13 (<span id="live-score-text">{{ entry.score if entry else 0 }}%</span>)
                     </span>
                 </div>
                 <div class="progress-bar" style="margin-bottom:14px;">
                     <div id="live-score-bar" class="progress-fill" style="width: {{ entry.score if entry else 0 }}%;"></div>
                 </div>
 
-                <div class="sec-label">Core Routine</div>
-                <div class="tick-grid">
-                    {% set core_items = [
-                        ('study', 'Study', 'Focused study', entry.study if entry else False),
-                        ('gym', 'Gym', 'Workout done', entry.gym if entry else False),
-                        ('running', 'Running', 'Cardio / Run', entry.running if entry else False),
-                        ('diet', 'Clean Diet', 'Healthy food', entry.diet if entry else False),
-                        ('sleep', 'Proper Sleep', 'Restful sleep', entry.sleep if entry else False),
-                        ('bath', 'Bath', 'Fresh start', entry.bath if entry else False)
-                    ] %}
-                    {% for name, title, sub, checked in core_items %}
-                    <label class="tick-card {% if checked %}ticked{% endif %}">
-                        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
-                        <div>
-                            <span class="tick-title">{{ title }}</span>
-                            <span class="tick-sub">{{ sub }}</span>
-                        </div>
-                    </label>
-                    {% endfor %}
-                </div>
+                {% set all_items = [
+                    ('study', 'Study', entry.study if entry else False),
+                    ('gym', 'Gym', entry.gym if entry else False),
+                    ('running', 'Running', entry.running if entry else False),
+                    ('diet', 'Clean Diet', entry.diet if entry else False),
+                    ('sleep', 'Proper Sleep', entry.sleep if entry else False),
+                    ('bath', 'Bath', entry.bath if entry else False),
+                    ('no_bad_habits', 'No Bad Habits', (not entry.bad_habit) if entry else False),
+                    ('no_junk_food', 'No Junk Food', (not entry.junk_food) if entry else False),
+                    ('no_social_media', 'No Social Media', (not entry.social_media) if entry else False),
+                    ('meditation', 'Meditation', entry.meditation if entry else False),
+                    ('learn_new', 'Learn Something New', entry.learn_new if entry else False),
+                    ('insta_upload', 'Insta Photo Upload', entry.insta_upload if entry else False),
+                    ('better_than_yesterday', 'Better Than Yesterday', entry.better_than_yesterday if entry else False)
+                ] %}
 
-                <div class="sec-label">Self Control & Mind</div>
-                <div class="tick-grid">
-                    {% set mind_items = [
-                        ('no_bad_habits', 'No Bad Habits', 'Stayed clean', (not entry.bad_habit) if entry else False),
-                        ('no_junk_food', 'No Junk Food', 'Zero junk', (not entry.junk_food) if entry else False),
-                        ('no_social_media', 'No Social Media', 'Zero distraction', (not entry.social_media) if entry else False),
-                        ('meditation', 'Meditation', 'Calm mind', entry.meditation if entry else False),
-                        ('learn_new', 'Learn Something New', 'New skill / idea', entry.learn_new if entry else False)
-                    ] %}
-                    {% for name, title, sub, checked in mind_items %}
+                <div class="tick-list">
+                    {% for name, title, checked in all_items %}
                     <label class="tick-card {% if checked %}ticked{% endif %}">
                         <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
-                        <div>
-                            <span class="tick-title">{{ title }}</span>
-                            <span class="tick-sub">{{ sub }}</span>
-                        </div>
-                    </label>
-                    {% endfor %}
-                </div>
-
-                <div class="sec-label">Growth & Output</div>
-                <div class="tick-grid">
-                    {% set growth_items = [
-                        ('insta_upload', 'Insta Photo Upload', 'Post / Story done', entry.insta_upload if entry else False),
-                        ('better_than_yesterday', 'Better Than Yesterday', '1% upgrade today', entry.better_than_yesterday if entry else False)
-                    ] %}
-                    {% for name, title, sub, checked in growth_items %}
-                    <label class="tick-card {% if checked %}ticked{% endif %}">
-                        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
-                        <div>
-                            <span class="tick-title">{{ title }}</span>
-                            <span class="tick-sub">{{ sub }}</span>
-                        </div>
+                        <span class="tick-title">{{ title }}</span>
                     </label>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="card">
-                <h3 style="margin-bottom:10px;">Thoughts & Regret</h3>
-                <label>Any Thought</label>
-                <textarea name="thoughts" rows="2" placeholder="Aaj ka koi thought, win, ya naya kya seekha...">{{ entry.thoughts if entry else '' }}</textarea>
+                <label>Thoughts</label>
+                <textarea name="thoughts" rows="2" placeholder="Write here...">{{ entry.thoughts if entry else '' }}</textarea>
 
-                <label style="color:#fda4af;">Any Regret</label>
-                <textarea name="regret" rows="2" placeholder="Koi mistake jo kal repeat nahi karni...">{{ entry.regret if entry else '' }}</textarea>
+                <label style="color:#fda4af;">Regret</label>
+                <textarea name="regret" rows="2" placeholder="Write here...">{{ entry.regret if entry else '' }}</textarea>
             </div>
         </form>
 
-        <!-- DAILY FULL RECORD -->
+        <!-- RECORDS -->
         <div class="card" style="overflow-x:auto;">
-            <h3 style="margin-bottom:10px;">Daily Record (Recent 30 Days)</h3>
+            <h3 style="margin-bottom:10px;">Records</h3>
             {% if recent_logs %}
             <table>
                 <tr>
                     <th>Date</th>
                     <th>Score</th>
-                    <th>Completed Ticks</th>
+                    <th>Completed</th>
                     <th>Time</th>
-                    <th>Action</th>
+                    <th></th>
                 </tr>
                 {% for log in recent_logs %}
                 <tr>
@@ -186,7 +153,7 @@
                     <td>
                         {% if log.study %}<span class="tag">Study</span>{% endif %}
                         {% if log.gym %}<span class="tag">Gym</span>{% endif %}
-                        {% if log.running %}<span class="tag">Run</span>{% endif %}
+                        {% if log.running %}<span class="tag">Running</span>{% endif %}
                         {% if log.diet %}<span class="tag">Diet</span>{% endif %}
                         {% if log.sleep %}<span class="tag">Sleep</span>{% endif %}
                         {% if log.bath %}<span class="tag">Bath</span>{% endif %}
@@ -194,7 +161,7 @@
                         {% if not log.junk_food %}<span class="tag">No Junk</span>{% endif %}
                         {% if not log.social_media %}<span class="tag">No SM</span>{% endif %}
                         {% if log.meditation %}<span class="tag">Meditation</span>{% endif %}
-                        {% if log.learn_new %}<span class="tag">Learned New</span>{% endif %}
+                        {% if log.learn_new %}<span class="tag">Learn New</span>{% endif %}
                         {% if log.insta_upload %}<span class="tag">Insta</span>{% endif %}
                         {% if log.better_than_yesterday %}<span class="tag">Better</span>{% endif %}
                     </td>
@@ -209,16 +176,15 @@
                 {% endfor %}
             </table>
             {% else %}
-                <p style="color:#94a3b8; font-size:0.88rem;">Abhi koi record save nahi hua hai.</p>
+                <p style="color:#94a3b8; font-size:0.86rem;">No records.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- RIGHT SIDE: TIME TRACKER + WEEK / MONTH / 1 YEAR PROGRESS -->
+    <!-- RIGHT: TIME + SUMMARY -->
     <div>
         <div class="card">
-            <h3 style="margin-bottom:4px;">Time Spent (Today)</h3>
-            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:10px;">Alag se time log karo:</p>
+            <h3 style="margin-bottom:8px;">Time</h3>
 
             <div class="time-row">
                 <label>Study</label>
@@ -257,12 +223,12 @@
             </div>
 
             <button form="task-form" type="submit" class="btn" style="width:100%; margin-top:14px;">
-                Save Today's Progress
+                Save
             </button>
         </div>
 
         <div class="card">
-            <h3 style="margin-bottom:12px;">Progress Summary</h3>
+            <h3 style="margin-bottom:12px;">Summary</h3>
 
             <div class="period-tabs">
                 <button type="button" class="period-tab active" onclick="switchPeriod('week', this)">Week</button>
@@ -278,12 +244,11 @@
                         <strong>{{ st.avg_score }}%</strong>
                     </div>
                     <div class="mini-box">
-                        <small>Days Logged</small>
-                        <strong style="color:#f8fafc;">{{ st.logged_days }} / {{ st.days_window }}</strong>
+                        <small>Days</small>
+                        <strong style="color:#f8fafc;">{{ st.logged_days }}/{{ st.days_window }}</strong>
                     </div>
                 </div>
 
-                <div class="sec-label" style="margin-top:8px;">Positive Ticks</div>
                 <div class="stat-line"><span>Study</span><span>{{ st.study_days }}/{{ st.logged_days }}</span></div>
                 <div class="stat-line"><span>Gym</span><span>{{ st.gym_days }}/{{ st.logged_days }}</span></div>
                 <div class="stat-line"><span>Running</span><span>{{ st.running_days }}/{{ st.logged_days }}</span></div>
@@ -297,13 +262,11 @@
                 <div class="stat-line"><span>Learn Something New</span><span>{{ st.learn_new_days }}/{{ st.logged_days }}</span></div>
                 <div class="stat-line"><span>Insta Photo Upload</span><span>{{ st.insta_days }}/{{ st.logged_days }}</span></div>
                 <div class="stat-line"><span>Better Than Yesterday</span><span>{{ st.better_days }}/{{ st.logged_days }}</span></div>
-
-                <div class="sec-label">Total Time Logged</div>
-                <div class="stat-line"><span>Study</span><span>{{ st.total_study_hrs }} hrs</span></div>
-                <div class="stat-line"><span>Gym</span><span>{{ st.total_gym_mins }} mins</span></div>
-                <div class="stat-line"><span>Running</span><span>{{ st.total_run_mins }} mins</span></div>
-                <div class="stat-line"><span>Avg Sleep</span><span>{{ st.avg_sleep_hrs }} hrs/day</span></div>
-                <div class="stat-line"><span>Social Media</span><span>{{ st.total_sm_mins }} mins</span></div>
+                <div class="stat-line"><span>Study Time</span><span>{{ st.total_study_hrs }} hrs</span></div>
+                <div class="stat-line"><span>Gym Time</span><span>{{ st.total_gym_mins }} min</span></div>
+                <div class="stat-line"><span>Running Time</span><span>{{ st.total_run_mins }} min</span></div>
+                <div class="stat-line"><span>Avg Sleep</span><span>{{ st.avg_sleep_hrs }} hrs</span></div>
+                <div class="stat-line"><span>Social Media</span><span>{{ st.total_sm_mins }} min</span></div>
             </div>
             {% endfor %}
         </div>
