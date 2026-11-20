@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Timer & Stopwatch - StudyOS{% endblock %}
+{% block title %}Timer - StudyOS{% endblock %}
 
 {% block content %}
 <style>
@@ -63,9 +63,6 @@
     .lap-item { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
     .lap-item:last-child { border-bottom: none; }
 
-    .quick-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); align-items: center; }
-    .quick-row input { margin: 0; flex: 1; padding: 9px 11px; }
-
     .gps-strip { display: none; margin-top: 12px; padding: 11px; border-radius: 11px; background: #0b0b10; border: 1px dashed rgba(34, 197, 94, 0.4); text-align: left; }
     .gps-strip.show { display: block; }
 
@@ -81,18 +78,16 @@
     .badge-run { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
 </style>
 
-<h1 style="margin-bottom: 12px;">Timer & Stopwatch</h1>
+<h1 style="margin-bottom: 12px;">Timer</h1>
 
-<!-- CATEGORY SWITCH: STUDY vs RUNNING -->
 <div class="mode-switch">
-    <button type="button" id="btn-study" class="mode-btn active-study" onclick="setMode('study')">📖 Study Mode</button>
-    <button type="button" id="btn-running" class="mode-btn" onclick="setMode('running')">🏃 Running Mode</button>
+    <button type="button" id="btn-study" class="mode-btn active-study" onclick="setMode('study')">Study Mode</button>
+    <button type="button" id="btn-running" class="mode-btn" onclick="setMode('running')">Running Mode</button>
 </div>
 
-<!-- TOOL SWITCH: STOPWATCH vs COUNTDOWN TIMER -->
 <div class="tool-switch">
-    <button type="button" id="tab-stopwatch" class="tool-btn active" onclick="setTool('stopwatch')">⏱️ Stopwatch</button>
-    <button type="button" id="tab-countdown" class="tool-btn" onclick="setTool('countdown')">⏳ Countdown Timer</button>
+    <button type="button" id="tab-stopwatch" class="tool-btn active" onclick="setTool('stopwatch')">Stopwatch</button>
+    <button type="button" id="tab-countdown" class="tool-btn" onclick="setTool('countdown')">Countdown</button>
 </div>
 
 <div class="card timer-face">
@@ -100,7 +95,7 @@
         Study Mode • Stopwatch
     </div>
 
-    <!-- STOPWATCH VIEW -->
+    <!-- STOPWATCH -->
     <div id="view-stopwatch">
         <div id="sw-display" class="timer-digits">00:00:00<small>.0</small></div>
         <div class="btn-row-4">
@@ -112,7 +107,7 @@
         <div id="lap-box" class="lap-box"></div>
     </div>
 
-    <!-- COUNTDOWN TIMER VIEW -->
+    <!-- COUNTDOWN -->
     <div id="view-countdown" style="display:none;">
         <div id="cd-display" class="timer-digits">25:00</div>
 
@@ -124,7 +119,7 @@
         </div>
 
         <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <input type="number" id="cd-custom-mins" min="1" max="360" placeholder="Custom mins" style="margin:0; flex:1; padding:8px 10px;">
+            <input type="number" id="cd-custom-mins" min="1" max="360" placeholder="Minutes" style="margin:0; flex:1; padding:8px 10px;">
             <button type="button" class="btn btn-dark btn-sm" onclick="cdSetCustom()">Set</button>
         </div>
 
@@ -135,28 +130,21 @@
         </div>
     </div>
 
-    <!-- DIRECT SAVE BUTTON -->
+    <!-- SAVE BUTTON -->
     <form method="POST" action="{{ url_for('study.save') }}" id="live-save-form" onsubmit="prepareSave()" style="margin-top:10px;">
         <input type="hidden" name="mode" id="live-mode-input" value="study">
         <input type="hidden" name="duration" id="live-duration-input" value="0">
-        <button type="submit" class="btn" style="width:100%;">Save Progress Record</button>
+        <button type="submit" class="btn" style="width:100%;">Save</button>
     </form>
 
-    <!-- COMPACT QUICK ADD -->
-    <form method="POST" action="{{ url_for('study.save') }}" class="quick-row">
-        <input type="hidden" name="mode" id="quick-mode-input" value="study">
-        <input type="number" name="quick_mins" min="1" max="1440" placeholder="Quick add mins (e.g. 40)" required>
-        <button type="submit" class="btn btn-dark btn-sm" style="white-space:nowrap;">+ Add</button>
-    </form>
-
-    <!-- FUTURE RUNNING GPS STANDBY -->
+    <!-- GPS STANDBY -->
     <div id="gps-strip" class="gps-strip">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:0.84rem; color:#34d399;">GPS Distance Tracker</strong>
-            <span style="font-size:0.72rem; color:#94a3b8;">Standby (Off)</span>
+            <strong style="font-size:0.84rem; color:#34d399;">GPS Distance</strong>
+            <span style="font-size:0.72rem; color:#94a3b8;">Standby</span>
         </div>
         <p style="font-size:0.76rem; color:#94a3b8; margin-top:4px;">
-            Future mein running distance (km) live location se yahan record hoga. Abhi permission OFF hai.
+            Live location distance tracking is disabled for now.
         </p>
     </div>
 </div>
@@ -173,11 +161,11 @@
     </div>
 </div>
 
-<!-- PROGRESS RECORDS -->
+<!-- RECORDS -->
 <div class="card" style="margin-top:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3>Progress Records</h3>
-        <span style="font-size:0.8rem; color:#94a3b8;">{{ records|length }} logs</span>
+        <h3>Records</h3>
+        <span style="font-size:0.8rem; color:#94a3b8;">{{ records|length }}</span>
     </div>
 
     <div class="filter-row">
@@ -206,7 +194,7 @@
             {% endfor %}
         </div>
     {% else %}
-        <p style="color:#94a3b8; font-size:0.88rem;">Abhi koi timer record save nahi hua hai.</p>
+        <p style="color:#94a3b8; font-size:0.86rem;">No records.</p>
     {% endif %}
 </div>
 
@@ -214,12 +202,10 @@
     let currentMode = 'study';
     let currentTool = 'stopwatch';
 
-    // --- STOPWATCH STATE ---
     let swTenths = 0;
     let swInterval = null;
     let laps = [];
 
-    // --- COUNTDOWN STATE ---
     let cdTotalSecs = 25 * 60;
     let cdRemainingSecs = 25 * 60;
     let cdElapsedSecs = 0;
@@ -228,7 +214,7 @@
     function updateHeaderTag() {
         const tag = document.getElementById('mode-tag');
         const modeText = currentMode === 'running' ? 'Running Mode' : 'Study Mode';
-        const toolText = currentTool === 'stopwatch' ? 'Stopwatch' : 'Countdown Timer';
+        const toolText = currentTool === 'stopwatch' ? 'Stopwatch' : 'Countdown';
         tag.textContent = `${modeText} • ${toolText}`;
         tag.style.color = currentMode === 'running' ? '#34d399' : '#ff7eb3';
     }
@@ -236,7 +222,6 @@
     function setMode(mode) {
         currentMode = mode;
         document.getElementById('live-mode-input').value = mode;
-        document.getElementById('quick-mode-input').value = mode;
 
         document.getElementById('btn-study').className = 'mode-btn' + (mode === 'study' ? ' active-study' : '');
         document.getElementById('btn-running').className = 'mode-btn' + (mode === 'running' ? ' active-running' : '');
@@ -257,7 +242,6 @@
         updateHeaderTag();
     }
 
-    // STOPWATCH FUNCTIONS
     function formatSw(tenths) {
         const totalSecs = Math.floor(tenths / 10);
         const t = tenths % 10;
@@ -300,7 +284,6 @@
         box.style.display = 'none';
     }
 
-    // COUNTDOWN FUNCTIONS
     function renderCd() {
         const hrs = Math.floor(cdRemainingSecs / 3600);
         const mins = String(Math.floor((cdRemainingSecs % 3600) / 60)).padStart(2, '0');
@@ -345,7 +328,7 @@
             } else {
                 cdPause();
                 playBeep();
-                alert('Time Complete! Click "Save Progress Record" to log it.');
+                alert('Time complete. Click Save to log this record.');
             }
         }, 1000);
     }
@@ -362,7 +345,6 @@
         renderCd();
     }
 
-    // PASS ACTIVE DURATION ON SAVE
     function prepareSave() {
         const secs = currentTool === 'stopwatch' ? Math.floor(swTenths / 10) : cdElapsedSecs;
         document.getElementById('live-duration-input').value = secs;
