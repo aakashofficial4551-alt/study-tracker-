@@ -6,6 +6,8 @@ from extensions import db, bcrypt, login_manager, migrate
 
 # Import models
 import models
+from models.habits import DailyProgress
+from models.gym import GymLog
 
 # Import blueprints
 from routes.auth import auth_bp
@@ -18,6 +20,8 @@ from routes.analytics import analytics_bp
 from routes.settings import settings_bp
 from routes.task import task_bp
 from routes.habits import habits_bp
+from routes.gym import gym_bp
+
 
 def create_app():
     app = Flask(__name__)
@@ -45,8 +49,9 @@ def create_app():
     app.register_blueprint(settings_bp)
     app.register_blueprint(task_bp)
     app.register_blueprint(habits_bp)
+    app.register_blueprint(gym_bp)
 
-    # Create Database
+    # Create Database Tables
     with app.app_context():
         db.create_all()
 
