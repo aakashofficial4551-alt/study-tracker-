@@ -305,26 +305,11 @@
 
     {% if current_user.is_authenticated %}
     <nav class="bottom-nav">
-        <a href="{{ url_for('dashboard.dashboard') }}" class="{% if 'dashboard' in ep %}active{% endif %}">
-            <span class="nav-icon">🏠</span>
-            <span>Home</span>
-        </a>
-        <a href="{{ url_for('habits.daily_tracker') }}" class="{% if 'habits' in ep %}active{% endif %}">
-            <span class="nav-icon">✅</span>
-            <span>Task</span>
-        </a>
-        <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">
-            <span class="nav-icon">⏱️</span>
-            <span>Timer</span>
-        </a>
-        <a href="{{ url_for('gym.index') }}" class="{% if 'gym' in ep %}active{% endif %}">
-            <span class="nav-icon">🏋️</span>
-            <span>Gym</span>
-        </a>
-        <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">
-            <span class="nav-icon">📚</span>
-            <span>Subjects</span>
-        </a>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="{% if 'dashboard' in ep %}active{% endif %}">Home</a>
+        <a href="{{ url_for('habits.daily_tracker') }}" class="{% if 'habits' in ep %}active{% endif %}">Task</a>
+        <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
+        <a href="{{ url_for('gym.index') }}" class="{% if 'gym' in ep %}active{% endif %}">Gym</a>
+        <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subjects</a>
     </nav>
     {% endif %}
 
