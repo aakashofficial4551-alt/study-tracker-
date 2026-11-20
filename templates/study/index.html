@@ -1,70 +1,117 @@
 {% extends "base.html" %}
-{% block title %}Study Session - StudyOS{% endblock %}
+{% block title %}Timer - StudyOS{% endblock %}
 
 {% block content %}
-<h1 style="margin-bottom: 20px;">Study Timer & Sessions</h1>
+<style>
+    .mode-switch { display: flex; gap: 10px; margin-bottom: 18px; }
+    .mode-btn { padding: 9px 16px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .mode-btn.active { background: #e2e8f0; color: #0f172a; border-color: #e2e8f0; }
+    .timer-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 820px) { .timer-grid { grid-template-columns: 1fr; } }
+    .gps-box { background: #0f172a; border: 1px dashed #475569; border-radius: 10px; padding: 16px; margin-top: 16px; text-align: left; }
+    .gps-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .gps-stat { background: #1e293b; border-radius: 8px; padding: 10px; text-align: center; }
+    .gps-stat small { display: block; color: #94a3b8; font-size: 0.75rem; }
+    .gps-stat strong { font-size: 1.25rem; color: #f8fafc; }
+</style>
 
-<div class="stats-grid">
-    <div class="card">
-        <p style="color:#94a3b8;">Recent Total Hours</p>
-        <h2>{{ total_hours }} hrs</h2>
-    </div>
+<h1 style="margin-bottom: 14px;">Timer</h1>
+
+<div class="mode-switch">
+    <button type="button" class="mode-btn active" onclick="setMode('study', this)">Study Mode</button>
+    <button type="button" class="mode-btn" onclick="setMode('running', this)">Running Mode</button>
+</div>
+
+<div class="timer-grid">
+    <!-- LIVE TIMER + FUTURE RUNNING GPS PANEL -->
     <div class="card" style="text-align:center;">
-        <p style="color:#94a3b8;">Live Timer</p>
-        <h2 id="timer-display" style="margin:8px 0; font-size:2rem;">00:00:00</h2>
-        <button type="button" class="btn btn-sm" onclick="startTimer()">Start</button>
-        <button type="button" class="btn btn-sm" style="background:#f59e0b;" onclick="pauseTimer()">Pause</button>
-        <button type="button" class="btn btn-danger btn-sm" onclick="resetTimer()">Reset</button>
+        <p style="color:#94a3b8;" id="mode-label">Active Mode: Study</p>
+        <h2 id="timer-display" style="margin:14px 0; font-size:3rem; letter-spacing:2px;">00:00:00</h2>
+
+        <div style="display:flex; justify-content:center; gap:10px; margin-bottom:14px;">
+            <button type="button" class="btn" onclick="startTimer()">Start</button>
+            <button type="button" class="btn" style="background:#94a3b8; color:#0f172a;" onclick="pauseTimer()">Pause</button>
+            <button type="button" class="btn btn-danger" onclick="resetTimer()">Reset</button>
+        </div>
+
+        <p style="color:#94a3b8; font-size:0.85rem;">Total Logged (Recent): <strong>{{ total_hours }} hrs</strong></p>
+
+        <!-- RUNNING GPS MODULE (READY FOR FUTURE - DOES NOT REQUEST LOCATION YET) -->
+        <div class="gps-box" id="gps-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>Running Distance & GPS</strong>
+                <span style="font-size:0.75rem; color:#94a3b8; border:1px solid #475569; padding:2px 8px; border-radius:999px;">Standby</span>
+            </div>
+            <p style="color:#94a3b8; font-size:0.82rem; margin-top:6px;">
+                Future mein yahan live GPS location se running distance aur pace record hoga. Abhi permission OFF rakhi gayi hai.
+            </p>
+            <div class="gps-metrics">
+                <div class="gps-stat">
+                    <small>Distance</small>
+                    <strong id="gps-distance">0.00 km</strong>
+                </div>
+                <div class="gps-stat">
+                    <small>Pace</small>
+                    <strong id="gps-pace">0:00 /km</strong>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm" style="width:100%; background:#334155; color:#cbd5e1;" onclick="gpsFutureNotice()">
+                GPS Location Permission (Future Ready)
+            </button>
+            <p id="gps-msg" style="font-size:0.8rem; color:#94a3b8; margin-top:8px; display:none;"></p>
+        </div>
+    </div>
+
+    <!-- SAVE SESSION FORM -->
+    <div class="card">
+        <h3 style="margin-bottom: 12px;">Save Session</h3>
+        <form method="POST" action="{{ url_for('study.save') }}">
+            <label>Category / Subject</label>
+            <input list="subject-list" id="subject-input" name="subject" placeholder="Select subject or type Running" required>
+            <datalist id="subject-list">
+                <option value="Running">
+                {% for s in subjects %}
+                    <option value="{{ s.name }}">
+                {% endfor %}
+            </datalist>
+
+            <label>Topic / Route Details</label>
+            <input type="text" id="chapter-input" name="chapter" placeholder="e.g. Matrices ya Morning Run 3km">
+
+            <label>Duration (seconds)</label>
+            <input type="number" id="duration-input" name="duration" value="0" min="0" required>
+
+            <label>Focus / Intensity Rating (1 to 5)</label>
+            <select name="rating">
+                <option value="5">5 - Excellent</option>
+                <option value="4">4 - Good</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Low</option>
+                <option value="1">1 - Poor</option>
+            </select>
+
+            <label>Notes</label>
+            <textarea name="notes" rows="2" placeholder="Session notes..."></textarea>
+
+            <button type="submit" class="btn" style="width:100%;">Save Timer Record</button>
+        </form>
     </div>
 </div>
 
-<div class="card">
-    <h3 style="margin-bottom: 12px;">Save Study Session</h3>
-    <form method="POST" action="{{ url_for('study.save') }}">
-        <label>Subject</label>
-        <input list="subject-list" name="subject" placeholder="Select or type subject" required>
-        <datalist id="subject-list">
-            {% for s in subjects %}
-                <option value="{{ s.name }}">
-            {% endfor %}
-        </datalist>
-
-        <label>Chapter / Topic</label>
-        <input type="text" name="chapter" placeholder="e.g. Matrices & Determinants">
-
-        <label>Duration (in seconds)</label>
-        <input type="number" id="duration-input" name="duration" value="0" min="0" required>
-
-        <label>Focus Rating (1 to 5)</label>
-        <select name="rating">
-            <option value="5">5 - Excellent</option>
-            <option value="4">4 - Good</option>
-            <option value="3">3 - Average</option>
-            <option value="2">2 - Distracted</option>
-            <option value="1">1 - Poor</option>
-        </select>
-
-        <label>Notes</label>
-        <textarea name="notes" rows="3" placeholder="What did you cover?"></textarea>
-
-        <button type="submit" class="btn">Save Session</button>
-    </form>
-</div>
-
-<div class="card">
-    <h3 style="margin-bottom: 12px;">Recent Sessions</h3>
+<div class="card" style="overflow-x:auto;">
+    <h3 style="margin-bottom: 12px;">Recent Timer Logs</h3>
     {% if sessions %}
         <table>
             <tr>
-                <th>Subject</th>
-                <th>Chapter</th>
-                <th>Duration (min)</th>
+                <th>Category / Subject</th>
+                <th>Details</th>
+                <th>Duration</th>
                 <th>Rating</th>
                 <th>Notes</th>
             </tr>
             {% for s in sessions %}
             <tr>
-                <td>{{ s.subject }}</td>
+                <td><strong>{{ s.subject }}</strong></td>
                 <td>{{ s.chapter or '-' }}</td>
                 <td>{{ ((s.duration or 0) / 60)|round(1) }} min</td>
                 <td>{{ s.rating }}/5</td>
@@ -73,13 +120,32 @@
             {% endfor %}
         </table>
     {% else %}
-        <p style="color:#94a3b8;">No study sessions recorded yet.</p>
+        <p style="color:#94a3b8;">Abhi koi timer session record nahi hua hai.</p>
     {% endif %}
 </div>
 
 <script>
     let seconds = 0;
     let interval = null;
+
+    function setMode(mode, btn) {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const subjectInput = document.getElementById('subject-input');
+        const chapterInput = document.getElementById('chapter-input');
+        const modeLabel = document.getElementById('mode-label');
+
+        if (mode === 'running') {
+            modeLabel.textContent = 'Active Mode: Running';
+            subjectInput.value = 'Running';
+            chapterInput.placeholder = 'e.g. Morning Run / Distance (km)';
+        } else {
+            modeLabel.textContent = 'Active Mode: Study';
+            if (subjectInput.value === 'Running') subjectInput.value = '';
+            chapterInput.placeholder = 'e.g. Matrices & Determinants';
+        }
+    }
 
     function updateDisplay() {
         const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
@@ -104,5 +170,23 @@
         seconds = 0;
         updateDisplay();
     }
+
+    function gpsFutureNotice() {
+        const msg = document.getElementById('gps-msg');
+        msg.style.display = 'block';
+        msg.textContent = 'GPS location permission abhi disabled hai. Jab running distance tracking on karni hogi tab yahan navigator.geolocation activate kar denge.';
+    }
+
+    /* FUTURE GPS TRACKING HOOK (Uncomment when ready):
+    function enableLiveGpsTracking() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+                (pos) => { /* Calculate Haversine distance here */ },
+                (err) => { console.error(err); },
+                { enableHighAccuracy: true }
+            );
+        }
+    }
+    */
 </script>
 {% endblock %}
