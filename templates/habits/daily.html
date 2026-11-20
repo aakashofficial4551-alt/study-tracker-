@@ -3,175 +3,186 @@
 
 {% block content %}
 <style>
-    .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
     .date-form { display: flex; align-items: center; gap: 8px; }
-    .date-form input[type="date"] { margin: 0; width: auto; padding: 8px 12px; }
-    .main-split { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; align-items: start; }
-    @media (max-width: 920px) { .main-split { grid-template-columns: 1fr; } }
-    .sec-label { font-size: 0.85rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.7px; margin: 18px 0 10px 0; }
+    .date-form input[type="date"] { margin: 0; width: auto; padding: 8px 10px; font-size: 0.9rem; }
+    .main-split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; align-items: start; }
+    @media (max-width: 880px) { .main-split { grid-template-columns: 1fr; } }
+
+    .sec-label { font-size: 0.78rem; font-weight: 800; color: #ff2a85; text-transform: uppercase; letter-spacing: 0.7px; margin: 16px 0 10px 0; }
     .sec-label:first-child { margin-top: 0; }
-    .check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-    .check-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 11px 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .check-box.ok { border-color: #64748b; }
-    .check-title { font-size: 0.92rem; font-weight: 600; color: #f8fafc; }
-    .check-sub { display: block; font-size: 0.75rem; color: #94a3b8; }
-    .yn-toggle { display: flex; border: 1px solid #475569; border-radius: 6px; overflow: hidden; flex-shrink: 0; }
-    .yn-toggle input { display: none; }
-    .yn-toggle label { margin: 0; padding: 5px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; background: #1e293b; color: #94a3b8; }
-    .yn-toggle input[value="yes"]:checked + label { background: #e2e8f0; color: #0f172a; }
-    .yn-toggle input[value="no"]:checked + label { background: #475569; color: #f8fafc; }
-    .time-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #334155; }
+
+    .tick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 9px; }
+    .tick-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #0b0b10;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        user-select: none;
+        transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    }
+    .tick-card:active { transform: scale(0.98); }
+    .tick-card.ticked {
+        border-color: rgba(34, 197, 94, 0.65);
+        background: rgba(16, 185, 129, 0.12);
+    }
+    .tick-card input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: #22c55e;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    .tick-title { font-size: 0.88rem; font-weight: 700; color: #f8fafc; display: block; line-height: 1.25; }
+    .tick-sub { font-size: 0.72rem; color: #94a3b8; display: block; margin-top: 2px; }
+
+    .time-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
     .time-row:last-of-type { border-bottom: none; }
     .time-row label { margin: 0; font-size: 0.9rem; color: #e2e8f0; }
     .time-in { display: flex; align-items: center; gap: 6px; }
-    .time-in input { width: 80px; margin: 0; padding: 6px 8px; text-align: center; }
-    .time-unit { font-size: 0.8rem; color: #94a3b8; width: 32px; }
-    .period-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
-    .period-tab { padding: 8px 6px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
-    .period-tab.active { background: #e2e8f0; color: #0f172a; border-color: #e2e8f0; }
+    .time-in input { width: 78px; margin: 0; padding: 7px 8px; text-align: center; }
+    .time-unit { font-size: 0.78rem; color: #94a3b8; width: 32px; }
+
+    .period-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+    .period-tab { padding: 8px 6px; border: 1px solid rgba(255, 255, 255, 0.1); background: #0b0b10; color: #cbd5e1; border-radius: 9px; cursor: pointer; font-weight: 700; font-size: 0.84rem; }
+    .period-tab.active { background: linear-gradient(135deg, #ff2e4c 0%, #ff2a85 100%); color: #fff; border-color: transparent; }
     .period-pane { display: none; }
     .period-pane.active { display: block; }
-    .stat-line { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e293b; font-size: 0.88rem; }
+
+    .mini-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .mini-box { background: #0b0b10; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px; }
+    .mini-box small { color: #94a3b8; font-size: 0.74rem; display: block; }
+    .mini-box strong { font-size: 1.2rem; color: #22c55e; }
+
+    .stat-line { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 0.84rem; }
     .stat-line span:first-child { color: #94a3b8; }
-    .stat-line span:last-child { font-weight: 600; color: #f8fafc; }
-    .mini-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-    .mini-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; }
-    .mini-box small { color: #94a3b8; font-size: 0.75rem; display: block; }
-    .mini-box strong { font-size: 1.2rem; color: #f8fafc; }
-    .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: #0f172a; border: 1px solid #334155; margin: 2px; color: #cbd5e1; }
+    .stat-line span:last-child { font-weight: 700; color: #f8fafc; }
+
+    .tag { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); margin: 2px; color: #6ee7b7; }
 </style>
 
 <div class="top-bar">
     <div>
         <h1>Task & Daily Progress</h1>
-        <p style="color:#94a3b8; font-size:0.9rem; margin-top:4px;">
-            Selected Date: <strong style="color:#f8fafc;">{{ selected_date.strftime('%A, %d %b %Y') }}</strong>
-            &nbsp;|&nbsp; Streak: <strong>{{ streak }} Days</strong>
+        <p style="color:#94a3b8; font-size:0.86rem; margin-top:3px;">
+            <strong style="color:#f8fafc;">{{ selected_date.strftime('%A, %d %b %Y') }}</strong>
+            &nbsp;•&nbsp; <span style="color:#22c55e; font-weight:700;">🔥 {{ streak }} Day Streak</span>
         </p>
     </div>
 
     <form method="GET" action="{{ url_for('habits.daily_tracker') }}" class="date-form">
         <input type="date" name="date" value="{{ selected_date.isoformat() }}" max="{{ today.isoformat() }}">
-        <button type="submit" class="btn btn-sm">Load Date</button>
+        <button type="submit" class="btn btn-sm">Load</button>
     </form>
 </div>
 
 <div class="main-split">
-    <!-- LEFT SIDE: DAILY TASK CHECKLIST + REFLECTION + DAILY RECORD -->
+    <!-- LEFT: POSITIVE CHECKBOX TICKS + THOUGHTS + DAILY RECORD -->
     <div>
         <form method="POST" action="{{ url_for('habits.save_daily') }}" id="task-form">
             <input type="hidden" name="log_date" value="{{ selected_date.isoformat() }}">
 
             <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <h3>Daily Checklist</h3>
-                    <span style="font-weight:700; font-size:1.05rem;">Score: <span id="live-score-text">{{ entry.score if entry else 0 }}%</span></span>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Daily Ticks</h3>
+                    <span style="font-weight:800; font-size:1.05rem; color:#22c55e;">
+                        <span id="live-tick-count">0</span>/13 &nbsp;(<span id="live-score-text">{{ entry.score if entry else 0 }}%</span>)
+                    </span>
                 </div>
-                <div class="progress-bar" style="margin-bottom:16px;">
+                <div class="progress-bar" style="margin-bottom:14px;">
                     <div id="live-score-bar" class="progress-fill" style="width: {{ entry.score if entry else 0 }}%;"></div>
                 </div>
 
-                <div class="sec-label">Daily Routine</div>
-                <div class="check-grid">
-                    {% set positive_habits = [
-                        ('study', 'Study', 'Padhai ki?'),
-                        ('gym', 'Gym', 'Workout kiya?'),
-                        ('running', 'Running', 'Run / Cardio?'),
-                        ('diet', 'Diet', 'Clean diet li?'),
-                        ('sleep', 'Sleep', 'Proper neend?'),
-                        ('bath', 'Bath', 'Nahaya?')
+                <div class="sec-label">Core Routine</div>
+                <div class="tick-grid">
+                    {% set core_items = [
+                        ('study', 'Study', 'Focused study', entry.study if entry else False),
+                        ('gym', 'Gym', 'Workout done', entry.gym if entry else False),
+                        ('running', 'Running', 'Cardio / Run', entry.running if entry else False),
+                        ('diet', 'Clean Diet', 'Healthy food', entry.diet if entry else False),
+                        ('sleep', 'Proper Sleep', 'Restful sleep', entry.sleep if entry else False),
+                        ('bath', 'Bath', 'Fresh start', entry.bath if entry else False)
                     ] %}
-                    {% for field, label, sub in positive_habits %}
-                    {% set val = entry|attr(field) if entry else False %}
-                    <div class="check-box" data-type="positive">
+                    {% for name, title, sub, checked in core_items %}
+                    <label class="tick-card {% if checked %}ticked{% endif %}">
+                        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
                         <div>
-                            <span class="check-title">{{ label }}</span>
-                            <span class="check-sub">{{ sub }}</span>
+                            <span class="tick-title">{{ title }}</span>
+                            <span class="tick-sub">{{ sub }}</span>
                         </div>
-                        <div class="yn-toggle">
-                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_yes">YES</label>
-                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_no">NO</label>
-                        </div>
-                    </div>
+                    </label>
                     {% endfor %}
                 </div>
 
-                <div class="sec-label">Control & Habits (No = Better)</div>
-                <div class="check-grid">
-                    {% set avoid_habits = [
-                        ('bad_habit', 'Bad Habit', 'Koi buri aadat?'),
-                        ('junk_food', 'Junk Food', 'Junk khaya?'),
-                        ('social_media', 'Social Media', 'Time waste hua?')
+                <div class="sec-label">Self Control & Mind</div>
+                <div class="tick-grid">
+                    {% set mind_items = [
+                        ('no_bad_habits', 'No Bad Habits', 'Stayed clean', (not entry.bad_habit) if entry else False),
+                        ('no_junk_food', 'No Junk Food', 'Zero junk', (not entry.junk_food) if entry else False),
+                        ('no_social_media', 'No Social Media', 'Zero distraction', (not entry.social_media) if entry else False),
+                        ('meditation', 'Meditation', 'Calm mind', entry.meditation if entry else False),
+                        ('learn_new', 'Learn Something New', 'New skill / idea', entry.learn_new if entry else False)
                     ] %}
-                    {% for field, label, sub in avoid_habits %}
-                    {% set val = entry|attr(field) if entry else False %}
-                    <div class="check-box" data-type="avoid">
+                    {% for name, title, sub, checked in mind_items %}
+                    <label class="tick-card {% if checked %}ticked{% endif %}">
+                        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
                         <div>
-                            <span class="check-title">{{ label }}</span>
-                            <span class="check-sub">{{ sub }}</span>
+                            <span class="tick-title">{{ title }}</span>
+                            <span class="tick-sub">{{ sub }}</span>
                         </div>
-                        <div class="yn-toggle">
-                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_yes">YES</label>
-                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_no">NO</label>
-                        </div>
-                    </div>
+                    </label>
                     {% endfor %}
                 </div>
 
-                <div class="sec-label">Output & Self-Check</div>
-                <div class="check-grid">
-                    {% set extra_habits = [
-                        ('insta_upload', 'Insta Photo Upload', 'Post / Story dala?'),
-                        ('better_than_yesterday', 'Better Than Yesterday', 'Kal se behtar?')
+                <div class="sec-label">Growth & Output</div>
+                <div class="tick-grid">
+                    {% set growth_items = [
+                        ('insta_upload', 'Insta Photo Upload', 'Post / Story done', entry.insta_upload if entry else False),
+                        ('better_than_yesterday', 'Better Than Yesterday', '1% upgrade today', entry.better_than_yesterday if entry else False)
                     ] %}
-                    {% for field, label, sub in extra_habits %}
-                    {% set val = entry|attr(field) if entry else False %}
-                    <div class="check-box" data-type="positive">
+                    {% for name, title, sub, checked in growth_items %}
+                    <label class="tick-card {% if checked %}ticked{% endif %}">
+                        <input type="checkbox" name="{{ name }}" {% if checked %}checked{% endif %} onchange="updateLiveScore()">
                         <div>
-                            <span class="check-title">{{ label }}</span>
-                            <span class="check-sub">{{ sub }}</span>
+                            <span class="tick-title">{{ title }}</span>
+                            <span class="tick-sub">{{ sub }}</span>
                         </div>
-                        <div class="yn-toggle">
-                            <input type="radio" id="{{ field }}_yes" name="{{ field }}" value="yes" {% if val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_yes">YES</label>
-                            <input type="radio" id="{{ field }}_no" name="{{ field }}" value="no" {% if not val %}checked{% endif %} onchange="updateLiveScore()">
-                            <label for="{{ field }}_no">NO</label>
-                        </div>
-                    </div>
+                    </label>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="card">
-                <h3 style="margin-bottom:12px;">Thoughts & Regret</h3>
+                <h3 style="margin-bottom:10px;">Thoughts & Regret</h3>
                 <label>Any Thought</label>
-                <textarea name="thoughts" rows="2" placeholder="Aaj ka koi thought, win, ya learning...">{{ entry.thoughts if entry else '' }}</textarea>
+                <textarea name="thoughts" rows="2" placeholder="Aaj ka koi thought, win, ya naya kya seekha...">{{ entry.thoughts if entry else '' }}</textarea>
 
-                <label>Any Regret</label>
-                <textarea name="regret" rows="2" placeholder="Koi regret ya mistake jo kal avoid karni hai...">{{ entry.regret if entry else '' }}</textarea>
+                <label style="color:#fda4af;">Any Regret</label>
+                <textarea name="regret" rows="2" placeholder="Koi mistake jo kal repeat nahi karni...">{{ entry.regret if entry else '' }}</textarea>
             </div>
         </form>
 
-        <!-- DAILY FULL RECORD HISTORY -->
+        <!-- DAILY FULL RECORD -->
         <div class="card" style="overflow-x:auto;">
-            <h3 style="margin-bottom:12px;">Daily Record (Recent 30 Days)</h3>
+            <h3 style="margin-bottom:10px;">Daily Record (Recent 30 Days)</h3>
             {% if recent_logs %}
             <table>
                 <tr>
                     <th>Date</th>
                     <th>Score</th>
-                    <th>Ticks</th>
+                    <th>Completed Ticks</th>
                     <th>Time</th>
                     <th>Action</th>
                 </tr>
                 {% for log in recent_logs %}
                 <tr>
-                    <td style="white-space:nowrap;"><strong>{{ log.log_date.strftime('%d %b %Y') }}</strong></td>
-                    <td><strong>{{ log.score }}%</strong></td>
+                    <td style="white-space:nowrap;"><strong>{{ log.log_date.strftime('%d %b') }}</strong></td>
+                    <td><strong style="color:{% if log.score >= 70 %}#22c55e{% elif log.score >= 40 %}#f59e0b{% else %}#ff2e4c{% endif %};">{{ log.score }}%</strong></td>
                     <td>
                         {% if log.study %}<span class="tag">Study</span>{% endif %}
                         {% if log.gym %}<span class="tag">Gym</span>{% endif %}
@@ -179,34 +190,35 @@
                         {% if log.diet %}<span class="tag">Diet</span>{% endif %}
                         {% if log.sleep %}<span class="tag">Sleep</span>{% endif %}
                         {% if log.bath %}<span class="tag">Bath</span>{% endif %}
+                        {% if not log.bad_habit %}<span class="tag">No Bad Habits</span>{% endif %}
+                        {% if not log.junk_food %}<span class="tag">No Junk</span>{% endif %}
+                        {% if not log.social_media %}<span class="tag">No SM</span>{% endif %}
+                        {% if log.meditation %}<span class="tag">Meditation</span>{% endif %}
+                        {% if log.learn_new %}<span class="tag">Learned New</span>{% endif %}
                         {% if log.insta_upload %}<span class="tag">Insta</span>{% endif %}
                         {% if log.better_than_yesterday %}<span class="tag">Better</span>{% endif %}
-                        {% if log.bad_habit %}<span class="tag">Bad Habit</span>{% endif %}
-                        {% if log.junk_food %}<span class="tag">Junk</span>{% endif %}
-                        {% if log.social_media %}<span class="tag">SM</span>{% endif %}
                     </td>
-                    <td style="font-size:0.82rem; color:#cbd5e1; white-space:nowrap;">
+                    <td style="font-size:0.78rem; color:#cbd5e1; white-space:nowrap;">
                         Study: {{ log.study_hours or 0 }}h | Gym: {{ log.gym_mins or 0 }}m<br>
-                        Run: {{ log.running_mins or 0 }}m | Sleep: {{ log.sleep_hours or 0 }}h | SM: {{ log.social_media_mins or 0 }}m
+                        Run: {{ log.running_mins or 0 }}m | Sleep: {{ log.sleep_hours or 0 }}h
                     </td>
                     <td>
-                        <a href="{{ url_for('habits.daily_tracker', date=log.log_date.isoformat()) }}" class="btn btn-sm">Open</a>
+                        <a href="{{ url_for('habits.daily_tracker', date=log.log_date.isoformat()) }}" class="btn btn-dark btn-sm">Open</a>
                     </td>
                 </tr>
                 {% endfor %}
             </table>
             {% else %}
-                <p style="color:#94a3b8;">Abhi koi daily record save nahi hua hai.</p>
+                <p style="color:#94a3b8; font-size:0.88rem;">Abhi koi record save nahi hua hai.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- RIGHT SIDE: TIME TRACKER + WEEK / MONTH / 1 YEAR PROGRESS RECORD -->
+    <!-- RIGHT SIDE: TIME TRACKER + WEEK / MONTH / 1 YEAR PROGRESS -->
     <div>
-        <!-- SEPARATE TIME TRACKER SIDE PANEL (Linked to #task-form via form="task-form") -->
         <div class="card">
             <h3 style="margin-bottom:4px;">Time Spent (Today)</h3>
-            <p style="color:#94a3b8; font-size:0.82rem; margin-bottom:10px;">Kitna time kis cheez mein diya:</p>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:10px;">Alag se time log karo:</p>
 
             <div class="time-row">
                 <label>Study</label>
@@ -245,11 +257,10 @@
             </div>
 
             <button form="task-form" type="submit" class="btn" style="width:100%; margin-top:14px;">
-                Save Today's Record
+                Save Today's Progress
             </button>
         </div>
 
-        <!-- WEEK / MONTH / 1 YEAR RECORD PANEL -->
         <div class="card">
             <h3 style="margin-bottom:12px;">Progress Summary</h3>
 
@@ -268,29 +279,31 @@
                     </div>
                     <div class="mini-box">
                         <small>Days Logged</small>
-                        <strong>{{ st.logged_days }} / {{ st.days_window }}</strong>
+                        <strong style="color:#f8fafc;">{{ st.logged_days }} / {{ st.days_window }}</strong>
                     </div>
                 </div>
 
-                <div class="sec-label" style="margin-top:10px;">Habit Consistency</div>
-                <div class="stat-line"><span>Study Done</span><span>{{ st.study_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Gym Done</span><span>{{ st.gym_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Running Done</span><span>{{ st.running_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Clean Diet</span><span>{{ st.diet_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Good Sleep</span><span>{{ st.sleep_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Bath</span><span>{{ st.bath_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Insta Upload</span><span>{{ st.insta_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Better Than Yesterday</span><span>{{ st.better_days }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Avoided Bad Habit</span><span>{{ st.clean_bad_habit }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Avoided Junk Food</span><span>{{ st.clean_junk_food }} / {{ st.logged_days }} days</span></div>
-                <div class="stat-line"><span>Controlled Social Media</span><span>{{ st.clean_social_media }} / {{ st.logged_days }} days</span></div>
+                <div class="sec-label" style="margin-top:8px;">Positive Ticks</div>
+                <div class="stat-line"><span>Study</span><span>{{ st.study_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Gym</span><span>{{ st.gym_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Running</span><span>{{ st.running_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Clean Diet</span><span>{{ st.diet_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Proper Sleep</span><span>{{ st.sleep_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Bath</span><span>{{ st.bath_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>No Bad Habits</span><span>{{ st.clean_bad_habit }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>No Junk Food</span><span>{{ st.clean_junk_food }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>No Social Media</span><span>{{ st.clean_social_media }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Meditation</span><span>{{ st.meditation_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Learn Something New</span><span>{{ st.learn_new_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Insta Photo Upload</span><span>{{ st.insta_days }}/{{ st.logged_days }}</span></div>
+                <div class="stat-line"><span>Better Than Yesterday</span><span>{{ st.better_days }}/{{ st.logged_days }}</span></div>
 
                 <div class="sec-label">Total Time Logged</div>
-                <div class="stat-line"><span>Total Study</span><span>{{ st.total_study_hrs }} hrs</span></div>
-                <div class="stat-line"><span>Total Gym</span><span>{{ st.total_gym_mins }} mins</span></div>
-                <div class="stat-line"><span>Total Running</span><span>{{ st.total_run_mins }} mins</span></div>
+                <div class="stat-line"><span>Study</span><span>{{ st.total_study_hrs }} hrs</span></div>
+                <div class="stat-line"><span>Gym</span><span>{{ st.total_gym_mins }} mins</span></div>
+                <div class="stat-line"><span>Running</span><span>{{ st.total_run_mins }} mins</span></div>
                 <div class="stat-line"><span>Avg Sleep</span><span>{{ st.avg_sleep_hrs }} hrs/day</span></div>
-                <div class="stat-line"><span>Total Social Media</span><span>{{ st.total_sm_mins }} mins</span></div>
+                <div class="stat-line"><span>Social Media</span><span>{{ st.total_sm_mins }} mins</span></div>
             </div>
             {% endfor %}
         </div>
@@ -299,19 +312,21 @@
 
 <script>
     function updateLiveScore() {
-        const items = document.querySelectorAll('.check-box');
-        let points = 0;
+        const cards = document.querySelectorAll('.tick-card');
+        let checked = 0;
 
-        items.forEach(item => {
-            const type = item.dataset.type;
-            const yesInput = item.querySelector('input[value="yes"]');
-            const isYes = yesInput && yesInput.checked;
-
-            if (type === 'positive' && isYes) points++;
-            if (type === 'avoid' && !isYes) points++;
+        cards.forEach(card => {
+            const box = card.querySelector('input[type="checkbox"]');
+            if (box && box.checked) {
+                checked++;
+                card.classList.add('ticked');
+            } else {
+                card.classList.remove('ticked');
+            }
         });
 
-        const score = Math.round((points / items.length) * 100);
+        const score = Math.round((checked / cards.length) * 100);
+        document.getElementById('live-tick-count').textContent = checked;
         document.getElementById('live-score-text').textContent = score + '%';
         document.getElementById('live-score-bar').style.width = score + '%';
     }
