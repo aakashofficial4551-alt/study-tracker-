@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Login - StudyOS{% endblock %}
+
+{% block content %}
+<div class="card auth-box">
+    <h2 style="margin-bottom: 16px;">Login</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <label>{{ form.username.label.text }}</label>
+        {{ form.username(placeholder="Enter username") }}
+        {% for error in form.username.errors %}
+            <div class="error-text">{{ error }}</div>
+        {% endfor %}
+
+        <label>{{ form.password.label.text }}</label>
+        {{ form.password(placeholder="Enter password") }}
+        {% for error in form.password.errors %}
+            <div class="error-text">{{ error }}</div>
+        {% endfor %}
+
+        {{ form.submit(class="btn", style="width:100%;") }}
+    </form>
+    <p style="margin-top: 14px; text-align: center; color: #94a3b8;">
+        Account nahi hai? <a href="{{ url_for('auth.register') }}" style="color:#38bdf8;">Register karein</a>
+    </p>
+</div>
+{% endblock %}
