@@ -2,9 +2,6 @@
 {% block title %}Settings - UR RECORDS{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
     .setting-row {
         display: flex;
@@ -21,7 +18,8 @@
         border: 1px solid var(--border-subtle);
         padding: 4px;
         border-radius: 12px;
-        width: 170px;
+        width: 165px;
+        flex-shrink: 0;
     }
     .theme-btn {
         border: none;
@@ -37,115 +35,68 @@
         background: var(--grad-primary);
         color: #ffffff;
     }
-    .loc-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin: 12px 0;
-    }
-    .loc-box {
+    .usage-box {
         background: var(--bg-black);
         border: 1px solid var(--border-subtle);
-        border-radius: 11px;
-        padding: 10px 12px;
-    }
-    .loc-box small {
-        display: block;
-        font-size: 0.72rem;
-        color: var(--text-muted);
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-    .loc-box strong {
-        font-size: 0.92rem;
-        color: var(--text-main);
-        word-break: break-all;
-    }
-    #device-map {
-        width: 100%;
-        height: 230px;
-        border-radius: 14px;
-        border: 1px solid var(--border-subtle);
-        margin-top: 10px;
-        z-index: 1;
-    }
-    .loc-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        border-radius: 12px;
+        padding: 14px;
         margin-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    .status-chip {
-        font-size: 0.75rem;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(22, 199, 132, 0.16);
+    .usage-time {
+        font-size: 1.45rem;
+        font-weight: 900;
         color: #16c784;
+    }
+    .divider {
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 14px;
+        padding-top: 14px;
     }
 </style>
 
 <h1 style="margin-bottom: 14px;">Settings</h1>
 
-<!-- APPEARANCE (DARK / LIGHT MODE) -->
+<!-- APPEARANCE -->
 <div class="card">
     <div class="setting-row">
         <div>
             <h3>Appearance</h3>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">App theme</p>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Theme</p>
         </div>
         <div class="theme-switch">
-            <button type="button" id="theme-dark-btn" class="theme-btn" onclick="setAppTheme('dark')">Dark</button>
-            <button type="button" id="theme-light-btn" class="theme-btn" onclick="setAppTheme('light')">Light</button>
+            <button type="button" id="theme-dark-btn" class="theme-btn" onclick="changeTheme('dark')">Dark</button>
+            <button type="button" id="theme-light-btn" class="theme-btn" onclick="changeTheme('light')">Light</button>
         </div>
     </div>
 </div>
 
-<!-- EXACT DEVICE LOCATION -->
+<!-- DIGITAL WELLBEING & BREAK NOTIFICATIONS -->
 <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <h3>Device Location</h3>
-        <span id="loc-status" class="status-chip">
-            {% if saved_loc %}Saved{% else %}Ready{% endif %}
-        </span>
+    <div class="setting-row">
+        <div>
+            <h3>Digital Wellbeing</h3>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">Today's screen time</p>
+        </div>
+        <button type="button" id="wellbeing-btn" class="btn btn-sm" onclick="toggleWellbeing()">Enable</button>
     </div>
 
-    <div class="loc-grid">
-        <div class="loc-box">
-            <small>Latitude</small>
-            <strong id="loc-lat">{{ '%.6f'|format(saved_loc.latitude) if saved_loc and saved_loc.latitude is not none else '--' }}</strong>
+    <div class="usage-box">
+        <div>
+            <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Used Today</div>
+            <div id="wellbeing-display" class="usage-time">0m</div>
         </div>
-        <div class="loc-box">
-            <small>Longitude</small>
-            <strong id="loc-lng">{{ '%.6f'|format(saved_loc.longitude) if saved_loc and saved_loc.longitude is not none else '--' }}</strong>
-        </div>
-        <div class="loc-box">
-            <small>Accuracy</small>
-            <strong id="loc-acc">{{ '%.0f m'|format(saved_loc.accuracy) if saved_loc and saved_loc.accuracy is not none else '--' }}</strong>
-        </div>
-        <div class="loc-box">
-            <small>Last Updated</small>
-            <strong id="loc-time">{{ saved_loc.updated_at.strftime('%d %b, %I:%M %p') if saved_loc and saved_loc.updated_at else '--' }}</strong>
-        </div>
+        <span id="wellbeing-state" style="font-size:0.76rem; font-weight:700; color:var(--text-muted);">Off</span>
     </div>
 
-    <div class="loc-box" style="margin-bottom:8px;">
-        <small>Exact Address</small>
-        <strong id="loc-address" style="font-size:0.86rem; font-weight:600;">
-            {{ saved_loc.address if saved_loc and saved_loc.address else 'Tap Locate to fetch exact position' }}
-        </strong>
-    </div>
-
-    <div id="device-map"></div>
-
-    <div class="loc-actions">
-        <button type="button" class="btn" onclick="fetchExactLocation()">Locate Device</button>
-        <a id="open-maps-link"
-           href="{% if saved_loc and saved_loc.latitude is not none %}https://www.google.com/maps?q={{ saved_loc.latitude }},{{ saved_loc.longitude }}{% else %}#{% endif %}"
-           target="_blank"
-           class="btn btn-dark">
-            Open in Maps
-        </a>
+    <div class="setting-row divider">
+        <div>
+            <strong style="font-size:0.94rem;">Break Notification</strong>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Send "Take a break" alert</p>
+        </div>
+        <button type="button" id="notif-btn" class="btn btn-dark btn-sm" onclick="toggleNotifications()">Allow</button>
     </div>
 </div>
 
@@ -161,10 +112,10 @@
         <a href="{{ url_for('settings.logout_action') }}" class="btn btn-dark btn-sm">Logout</a>
     </div>
 
-    <div style="border-top:1px solid var(--border-subtle); margin-top:12px; padding-top:12px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+    <div class="setting-row divider">
         <div>
             <strong style="font-size:0.9rem; color:#ff2442;">Delete Account</strong>
-            <p style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Permanently erase account and all records</p>
+            <p style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Erase account and all records</p>
         </div>
         <form method="POST" action="{{ url_for('settings.delete_account') }}" onsubmit="return confirmDeleteAll();">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -172,127 +123,107 @@
     </div>
 </div>
 
-<!-- DISCREET REST ENTRY -->
+<!-- DISCREET REST -->
 <div class="card" style="padding:12px 16px;">
     <a href="{{ url_for('rest.index') }}" style="display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:var(--text-muted); font-size:0.88rem; font-weight:600;">
         <span>Rest</span>
         <span>&rsaquo;</span>
     </a>
 </div>
-    // Theme Buttons Sync
+
+<script>
     function syncThemeButtons() {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        const current = localStorage.getItem('ur_theme') || 'dark';
         document.getElementById('theme-dark-btn').classList.toggle('active', current === 'dark');
         document.getElementById('theme-light-btn').classList.toggle('active', current === 'light');
     }
 
-    function setAppTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('ur_theme', theme);
+    function changeTheme(theme) {
+        if (window.applyAppTheme) {
+            window.applyAppTheme(theme);
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('ur_theme', theme);
+        }
         syncThemeButtons();
     }
 
-    syncThemeButtons();
-
-    // Device Location Map (Satellite + Labels)
-    const initLat = {{ saved_loc.latitude if saved_loc and saved_loc.latitude is not none else 20.5937 }};
-    const initLng = {{ saved_loc.longitude if saved_loc and saved_loc.longitude is not none else 78.9629 }};
-    const hasSaved = {{ 'true' if saved_loc and saved_loc.latitude is not none else 'false' }};
-
-    const devMap = L.map('device-map', { zoomControl: true }).setView([initLat, initLng], hasSaved ? 16 : 5);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19
-    }).addTo(devMap);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
-    }).addTo(devMap);
-
-    let devMarker = null;
-    if (hasSaved) {
-        devMarker = L.circleMarker([initLat, initLng], {
-            radius: 9,
-            fillColor: '#2563eb',
-            color: '#ffffff',
-            weight: 3,
-            fillOpacity: 1
-        }).addTo(devMap);
+    function formatUsage(totalSeconds) {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        if (hrs > 0) return `${hrs}h ${mins}m`;
+        return `${mins}m`;
     }
 
-    async function reverseGeocode(lat, lng) {
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-            if (!res.ok) return '';
-            const data = await res.json();
-            return data.display_name || '';
-        } catch (e) {
-            return '';
+    function syncWellbeingUI() {
+        const enabled = localStorage.getItem('ur_wellbeing_enabled') === 'true';
+        const btn = document.getElementById('wellbeing-btn');
+        const state = document.getElementById('wellbeing-state');
+        const disp = document.getElementById('wellbeing-display');
+
+        btn.textContent = enabled ? 'Disable' : 'Enable';
+        btn.className = enabled ? 'btn btn-dark btn-sm' : 'btn btn-sm';
+        state.textContent = enabled ? 'Tracking' : 'Off';
+        state.style.color = enabled ? '#16c784' : 'var(--text-muted)';
+
+        if (window.getWellbeingSeconds) {
+            disp.textContent = formatUsage(window.getWellbeingSeconds());
         }
     }
 
-    function fetchExactLocation() {
-        const statusEl = document.getElementById('loc-status');
-        if (!('geolocation' in navigator)) {
-            statusEl.textContent = 'Unavailable';
+    function toggleWellbeing() {
+        const enabled = localStorage.getItem('ur_wellbeing_enabled') === 'true';
+        if (!enabled) {
+            if (!confirm('Allow Digital Wellbeing screen time tracking?')) return;
+            localStorage.setItem('ur_wellbeing_enabled', 'true');
+        } else {
+            localStorage.setItem('ur_wellbeing_enabled', 'false');
+        }
+        syncWellbeingUI();
+    }
+
+    function syncNotifUI() {
+        const btn = document.getElementById('notif-btn');
+        if (!('Notification' in window)) {
+            btn.textContent = 'Unavailable';
+            btn.disabled = true;
             return;
         }
-        statusEl.textContent = 'Locating...';
-
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const { latitude, longitude, accuracy } = pos.coords;
-
-                document.getElementById('loc-lat').textContent = latitude.toFixed(6);
-                document.getElementById('loc-lng').textContent = longitude.toFixed(6);
-                document.getElementById('loc-acc').textContent = Math.round(accuracy) + ' m';
-                document.getElementById('open-maps-link').href = `https://www.google.com/maps?q=${latitude},${longitude}`;
-
-                if (!devMarker) {
-                    devMarker = L.circleMarker([latitude, longitude], {
-                        radius: 9,
-                        fillColor: '#2563eb',
-                        color: '#ffffff',
-                        weight: 3,
-                        fillOpacity: 1
-                    }).addTo(devMap);
-                } else {
-                    devMarker.setLatLng([latitude, longitude]);
-                }
-                devMap.setView([latitude, longitude], 17, { animate: true });
-
-                const address = await reverseGeocode(latitude, longitude);
-                if (address) {
-                    document.getElementById('loc-address').textContent = address;
-                }
-
-                // Persist to server for device tracking
-                const saveRes = await fetch("{{ url_for('settings.save_location') }}", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ latitude, longitude, accuracy, address })
-                });
-
-                if (saveRes.ok) {
-                    const out = await saveRes.json();
-                    if (out.updated_at) document.getElementById('loc-time').textContent = out.updated_at;
-                    statusEl.textContent = 'Live';
-                } else {
-                    statusEl.textContent = 'Located';
-                }
-            },
-            (err) => {
-                statusEl.textContent = err.code === 1 ? 'Permission Denied' : 'GPS Error';
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-        );
+        const allowed = Notification.permission === 'granted' && localStorage.getItem('ur_break_alerts') === 'true';
+        btn.textContent = allowed ? 'On' : 'Allow';
+        btn.className = allowed ? 'btn btn-success btn-sm' : 'btn btn-dark btn-sm';
     }
 
-    // Automatically request location on page load to keep coordinates fresh
-    fetchExactLocation();
-function confirmDeleteAll() {
+    async function toggleNotifications() {
+        if (!('Notification' in window)) return;
+        const currentlyOn = Notification.permission === 'granted' && localStorage.getItem('ur_break_alerts') === 'true';
+
+        if (currentlyOn) {
+            localStorage.setItem('ur_break_alerts', 'false');
+            syncNotifUI();
+            return;
+        }
+
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+            localStorage.setItem('ur_break_alerts', 'true');
+            syncNotifUI();
+            if (window.showBreakNotification) window.showBreakNotification();
+        } else {
+            alert('Notification permission denied.');
+        }
+    }
+
+    function confirmDeleteAll() {
         if (!confirm('Delete account and all records permanently?')) return false;
         localStorage.clear();
         sessionStorage.clear();
         return true;
     }
+
+    syncThemeButtons();
+    syncWellbeingUI();
+    syncNotifUI();
+    setInterval(syncWellbeingUI, 5000);
 </script>
 {% endblock %}
