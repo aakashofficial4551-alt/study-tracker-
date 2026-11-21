@@ -5,13 +5,94 @@
 <style>
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
+
+    .syl-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .syl-tab {
+        padding: 10px 6px;
+        border-radius: 11px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-black);
+        color: var(--text-muted);
+        font-weight: 800;
+        font-size: 0.86rem;
+        cursor: pointer;
+        text-align: center;
+    }
+    .syl-tab.active {
+        background: var(--grad-primary);
+        color: #ffffff;
+        border-color: transparent;
+    }
+    .syl-pane { display: none; }
+    .syl-pane.active { display: block; }
+
+    .syl-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+        font-size: 0.84rem;
+        color: var(--text-muted);
+    }
+    .ch-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .ch-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 12px;
+        border-radius: 11px;
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        cursor: pointer;
+        user-select: none;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .ch-row.done {
+        border-color: rgba(34, 197, 94, 0.65);
+        background: rgba(16, 185, 129, 0.12);
+    }
+    .ch-row input[type="checkbox"] {
+        width: 19px;
+        height: 19px;
+        margin: 0;
+        accent-color: #22c55e;
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+    .ch-num {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        min-width: 22px;
+    }
+    .ch-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+    .ch-row.done .ch-title {
+        color: #22c55e;
+    }
+
     .test-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 10px;
-        background: #060609;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
         border-radius: 12px;
         padding: 12px;
         margin-bottom: 10px;
@@ -33,34 +114,68 @@
 
 <div class="stats-grid">
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">SUBJECTS</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">SUBJECTS</div>
         <div style="font-size:1.35rem; font-weight:800; color:#ff2e88; margin-top:3px;">{{ total_subjects }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">CHAPTERS</div>
-        <div style="font-size:1.35rem; font-weight:800; color:#22c55e; margin-top:3px;">{{ completed_chapters }}/{{ total_chapters }}</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">CHAPTERS</div>
+        <div id="kpi-chapters" style="font-size:1.35rem; font-weight:800; color:#22c55e; margin-top:3px;">{{ completed_chapters }}/{{ total_chapters }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TESTS</div>
-        <div style="font-size:1.35rem; font-weight:800; color:#f8fafc; margin-top:3px;">{{ tests|length }}</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">TESTS</div>
+        <div style="font-size:1.35rem; font-weight:800; margin-top:3px;">{{ tests|length }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">AVG SCORE</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">AVG SCORE</div>
         <div style="font-size:1.35rem; font-weight:800; color:#34d399; margin-top:3px;">{{ avg_test_pct }}%</div>
     </div>
 </div>
 
+<!-- OVERALL SYLLABUS PROGRESS -->
 <div class="card" style="margin-top:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3>Syllabus</h3>
-        <strong style="color:#22c55e;">{{ syllabus_progress }}%</strong>
+        <strong id="overall-pct-text" style="color:#22c55e;">{{ syllabus_progress }}%</strong>
     </div>
     <div class="progress-bar">
-        <div class="progress-fill" style="width: {{ syllabus_progress }}%;"></div>
+        <div id="overall-pct-bar" class="progress-fill" style="width: {{ syllabus_progress }}%;"></div>
     </div>
-    <p style="font-size:0.8rem; color:#94a3b8; margin-top:8px;">
+    <p id="overall-sub-text" style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">
         Completed: {{ completed_chapters }} &nbsp;|&nbsp; Pending: {{ pending_chapters }}
     </p>
+</div>
+
+<!-- CBSE SYLLABUS CHECKLIST -->
+<div class="card">
+    <div class="syl-tabs">
+        {% for grp in syllabus_groups %}
+        <button type="button" class="syl-tab {% if loop.first %}active{% endif %}" onclick="switchSyllabus('{{ grp.name }}', this)">
+            {{ grp.name }}
+        </button>
+        {% endfor %}
+    </div>
+
+    {% for grp in syllabus_groups %}
+    <div id="syl-{{ grp.name }}" class="syl-pane {% if loop.first %}active{% endif %}">
+        <div class="syl-meta">
+            <span>Theory: <strong style="color:var(--text-main);">{{ grp.theory_marks }} Marks</strong> • {{ grp.total }} Chapters</span>
+            <strong id="subj-count-{{ grp.name }}" style="color:#22c55e;">{{ grp.completed }}/{{ grp.total }} ({{ grp.percent }}%)</strong>
+        </div>
+        <div class="progress-bar">
+            <div id="subj-bar-{{ grp.name }}" class="progress-fill" style="width: {{ grp.percent }}%;"></div>
+        </div>
+
+        <div class="ch-list">
+            {% for ch in grp.chapters %}
+            <label class="ch-row {% if ch.completed %}done{% endif %}" id="ch-row-{{ ch.id }}">
+                <input type="checkbox" {% if ch.completed %}checked{% endif %} onchange="toggleChapter({{ ch.id }}, this)">
+                <span class="ch-num">{{ ch.chapter_number }}.</span>
+                <span class="ch-title">{{ ch.title }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 
 <!-- ADD TEST -->
@@ -70,130 +185,4 @@
         <div class="two-col">
             <div>
                 <label>Test Name</label>
-                <input type="text" name="test_name" required>
-            </div>
-            <div>
-                <label>Subject</label>
-                <input list="subject-options" name="subject_name" required>
-                <datalist id="subject-options">
-                    {% for s in subjects %}
-                        <option value="{{ s.name }}">
-                    {% endfor %}
-                    <option value="Mathematics">
-                    <option value="Physics">
-                    <option value="Chemistry">
-                    <option value="English">
-                </datalist>
-            </div>
-        </div>
-
-        <div class="two-col">
-            <div>
-                <label>Date</label>
-                <input type="date" name="test_date" value="{{ today_str }}" required>
-            </div>
-            <div>
-                <label>Time</label>
-                <input type="time" name="test_time" value="{{ now_time_str }}">
-            </div>
-        </div>
-
-        <div class="two-col">
-            <div>
-                <label>Marks</label>
-                <input type="number" step="0.5" min="0" name="marks_obtained" required>
-            </div>
-            <div>
-                <label>Out of</label>
-                <input type="number" step="0.5" min="1" name="total_marks" value="100" required>
-            </div>
-        </div>
-
-        <button type="submit" class="btn" style="width:100%;">Save</button>
-    </form>
-</div>
-
-<!-- TEST RECORDS -->
-<div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3>Test Records</h3>
-        <span style="font-size:0.8rem; color:#94a3b8;">{{ tests|length }}</span>
-    </div>
-
-    {% if tests %}
-        {% for t in tests %}
-        <div class="test-item">
-            <div>
-                <div style="font-weight:800; font-size:0.96rem; color:#f8fafc;">
-                    {{ t.test_name }}
-                    <span class="pct-badge {% if t.percentage >= 75 %}pct-high{% elif t.percentage >= 50 %}pct-mid{% else %}pct-low{% endif %}">
-                        {{ t.percentage }}%
-                    </span>
-                </div>
-                <div style="font-size:0.8rem; color:#cbd5e1; margin-top:3px;">
-                    <strong>{{ t.subject_name }}</strong> &nbsp;•&nbsp;
-                    <strong style="color:#22c55e;">{{ '%g'|format(t.marks_obtained) }} / {{ '%g'|format(t.total_marks) }}</strong>
-                </div>
-                <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
-                    {{ t.test_date.strftime('%d %b %Y') }}{% if t.test_time %} • {{ t.test_time }}{% endif %}
-                </div>
-            </div>
-            <form method="POST" action="{{ url_for('subject.delete_test', id=t.id) }}" onsubmit="return confirm('Delete this record?');">
-                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p style="color:#94a3b8; font-size:0.86rem;">No records.</p>
-    {% endif %}
-</div>
-
-<!-- ADD SUBJECT -->
-<div class="card">
-    <h3 style="margin-bottom: 12px;">Add Subject</h3>
-    <form method="POST" action="{{ url_for('subject.add_subject') }}">
-        <div class="two-col">
-            <div>
-                <label>Subject Name</label>
-                <input type="text" name="name" required>
-            </div>
-            <div>
-                <label>Total Chapters</label>
-                <input type="number" name="chapters" min="0" value="0" required>
-            </div>
-        </div>
-        <label>Color</label>
-        <input type="color" name="color" value="#ff2e88" style="height:44px; padding:4px;">
-
-        <button type="submit" class="btn btn-dark" style="width:100%;">Save</button>
-    </form>
-</div>
-
-<!-- SUBJECT LIST -->
-<div class="card">
-    <h3 style="margin-bottom: 10px;">Subjects</h3>
-    {% if subjects %}
-        <table>
-            <tr>
-                <th>Subject</th>
-                <th>Chapters</th>
-                <th></th>
-            </tr>
-            {% for s in subjects %}
-            <tr>
-                <td>
-                    <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{{ s.color or '#ff2e88' }}; margin-right:6px;"></span>
-                    <strong>{{ s.name }}</strong>
-                </td>
-                <td>{{ s.total_chapters }}</td>
-                <td>
-                    <a href="{{ url_for('subject.delete_subject', id=s.id) }}" class="btn btn-danger btn-sm">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p style="color:#94a3b8; font-size:0.86rem;">No subjects.</p>
-    {% endif %}
-</div>
-{% endblock %}
+                <input
