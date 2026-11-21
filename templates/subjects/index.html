@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Subjects & Analytics - StudyOS{% endblock %}
+{% block title %}Subject - UR RECORDS{% endblock %}
 
 {% block content %}
 <style>
@@ -10,7 +10,7 @@
         justify-content: space-between;
         align-items: center;
         gap: 10px;
-        background: #0b0b10;
+        background: #060609;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
         padding: 12px;
@@ -24,36 +24,35 @@
         font-weight: 800;
         margin-left: 6px;
     }
-    .pct-high { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .pct-high { background: rgba(22, 199, 132, 0.16); color: #34d399; border: 1px solid rgba(22, 199, 132, 0.4); }
     .pct-mid { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.4); }
-    .pct-low { background: rgba(255, 46, 76, 0.16); color: #fb7185; border: 1px solid rgba(255, 46, 76, 0.4); }
+    .pct-low { background: rgba(255, 36, 66, 0.16); color: #fb7185; border: 1px solid rgba(255, 36, 66, 0.4); }
 </style>
 
-<h1 style="margin-bottom: 14px;">Subjects & Syllabus Analytics</h1>
+<h1 style="margin-bottom: 14px;">Subject</h1>
 
-<!-- SYLLABUS + TEST ANALYTICS OVERVIEW -->
 <div class="stats-grid">
     <div class="card" style="margin-bottom:0; padding:13px;">
         <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">SUBJECTS</div>
-        <div style="font-size:1.35rem; font-weight:800; color:#ff2a85; margin-top:3px;">{{ total_subjects }}</div>
+        <div style="font-size:1.35rem; font-weight:800; color:#ff2e88; margin-top:3px;">{{ total_subjects }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">CHAPTERS DONE</div>
+        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">CHAPTERS</div>
         <div style="font-size:1.35rem; font-weight:800; color:#22c55e; margin-top:3px;">{{ completed_chapters }}/{{ total_chapters }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TESTS TAKEN</div>
+        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TESTS</div>
         <div style="font-size:1.35rem; font-weight:800; color:#f8fafc; margin-top:3px;">{{ tests|length }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:13px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">AVG TEST SCORE</div>
+        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">AVG SCORE</div>
         <div style="font-size:1.35rem; font-weight:800; color:#34d399; margin-top:3px;">{{ avg_test_pct }}%</div>
     </div>
 </div>
 
 <div class="card" style="margin-top:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>Syllabus Completion</h3>
+        <h3>Syllabus</h3>
         <strong style="color:#22c55e;">{{ syllabus_progress }}%</strong>
     </div>
     <div class="progress-bar">
@@ -64,18 +63,18 @@
     </p>
 </div>
 
-<!-- ADD TEST RECORD FORM -->
+<!-- ADD TEST -->
 <div class="card">
-    <h3 style="margin-bottom: 12px; color:#ff7eb3;">📝 Add Test Record</h3>
+    <h3 style="margin-bottom: 12px; color:#ff2e88;">Add Test</h3>
     <form method="POST" action="{{ url_for('subject.add_test') }}">
         <div class="two-col">
             <div>
                 <label>Test Name</label>
-                <input type="text" name="test_name" placeholder="e.g. Unit Test 1 / Mock Test" required>
+                <input type="text" name="test_name" required>
             </div>
             <div>
                 <label>Subject</label>
-                <input list="subject-options" name="subject_name" placeholder="e.g. Mathematics" required>
+                <input list="subject-options" name="subject_name" required>
                 <datalist id="subject-options">
                     {% for s in subjects %}
                         <option value="{{ s.name }}">
@@ -101,24 +100,24 @@
 
         <div class="two-col">
             <div>
-                <label>Marks Obtained</label>
-                <input type="number" step="0.5" min="0" name="marks_obtained" placeholder="e.g. 72" required>
+                <label>Marks</label>
+                <input type="number" step="0.5" min="0" name="marks_obtained" required>
             </div>
             <div>
-                <label>Out of (Total Marks)</label>
-                <input type="number" step="0.5" min="1" name="total_marks" placeholder="e.g. 80" value="100" required>
+                <label>Out of</label>
+                <input type="number" step="0.5" min="1" name="total_marks" value="100" required>
             </div>
         </div>
 
-        <button type="submit" class="btn" style="width:100%;">Save Test Record</button>
+        <button type="submit" class="btn" style="width:100%;">Save</button>
     </form>
 </div>
 
-<!-- SAVED TEST RECORDS -->
+<!-- TEST RECORDS -->
 <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3>Saved Test Records</h3>
-        <span style="font-size:0.8rem; color:#94a3b8;">{{ tests|length }} records</span>
+        <h3>Test Records</h3>
+        <span style="font-size:0.8rem; color:#94a3b8;">{{ tests|length }}</span>
     </div>
 
     {% if tests %}
@@ -133,64 +132,58 @@
                 </div>
                 <div style="font-size:0.8rem; color:#cbd5e1; margin-top:3px;">
                     <strong>{{ t.subject_name }}</strong> &nbsp;•&nbsp;
-                    Marks: <strong style="color:#22c55e;">{{ '%g'|format(t.marks_obtained) }} / {{ '%g'|format(t.total_marks) }}</strong>
+                    <strong style="color:#22c55e;">{{ '%g'|format(t.marks_obtained) }} / {{ '%g'|format(t.total_marks) }}</strong>
                 </div>
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">
                     {{ t.test_date.strftime('%d %b %Y') }}{% if t.test_time %} • {{ t.test_time }}{% endif %}
                 </div>
             </div>
-            <form method="POST" action="{{ url_for('subject.delete_test', id=t.id) }}" onsubmit="return confirm('Delete this test record?');">
+            <form method="POST" action="{{ url_for('subject.delete_test', id=t.id) }}" onsubmit="return confirm('Delete this record?');">
                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
             </form>
         </div>
         {% endfor %}
     {% else %}
-        <p style="color:#94a3b8; font-size:0.88rem;">Abhi koi test record save nahi hua hai. Upar form bhar kar save karo!</p>
+        <p style="color:#94a3b8; font-size:0.86rem;">No records.</p>
     {% endif %}
 </div>
 
-<!-- MANAGE SUBJECTS -->
+<!-- ADD SUBJECT -->
 <div class="card">
     <h3 style="margin-bottom: 12px;">Add Subject</h3>
     <form method="POST" action="{{ url_for('subject.add_subject') }}">
         <div class="two-col">
             <div>
                 <label>Subject Name</label>
-                <input type="text" name="name" placeholder="e.g. Mathematics" required>
+                <input type="text" name="name" required>
             </div>
             <div>
                 <label>Total Chapters</label>
-                <input type="number" name="chapters" min="0" value="10" required>
+                <input type="number" name="chapters" min="0" value="0" required>
             </div>
         </div>
-        <div class="two-col">
-            <div>
-                <label>Icon (Emoji)</label>
-                <input type="text" name="icon" value="📘">
-            </div>
-            <div>
-                <label>Color</label>
-                <input type="color" name="color" value="#ff2a85" style="height:44px; padding:4px;">
-            </div>
-        </div>
-        <button type="submit" class="btn btn-dark" style="width:100%;">+ Add Subject</button>
+        <label>Color</label>
+        <input type="color" name="color" value="#ff2e88" style="height:44px; padding:4px;">
+
+        <button type="submit" class="btn btn-dark" style="width:100%;">Save</button>
     </form>
 </div>
 
+<!-- SUBJECT LIST -->
 <div class="card">
-    <h3 style="margin-bottom: 10px;">Your Subjects</h3>
+    <h3 style="margin-bottom: 10px;">Subjects</h3>
     {% if subjects %}
         <table>
             <tr>
                 <th>Subject</th>
                 <th>Chapters</th>
-                <th>Action</th>
+                <th></th>
             </tr>
             {% for s in subjects %}
             <tr>
                 <td>
-                    <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{{ s.color or '#ff2a85' }}; margin-right:6px;"></span>
-                    {{ s.icon or '📘' }} <strong>{{ s.name }}</strong>
+                    <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:{{ s.color or '#ff2e88' }}; margin-right:6px;"></span>
+                    <strong>{{ s.name }}</strong>
                 </td>
                 <td>{{ s.total_chapters }}</td>
                 <td>
@@ -200,7 +193,7 @@
             {% endfor %}
         </table>
     {% else %}
-        <p style="color:#94a3b8; font-size:0.88rem;">No subjects added yet.</p>
+        <p style="color:#94a3b8; font-size:0.86rem;">No subjects.</p>
     {% endif %}
 </div>
 {% endblock %}
