@@ -1,31 +1,86 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
-from flask_login import login_required, current_user
+from datetime import datetime, timedelta
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    jsonify,
+    redirect,
+    url_for,
+    flash,
+    current_app,
+)
+from flask_login import login_required, current_user, logout_user
+
 from extensions import db
-import os
+from models.settings import DeviceLocation
 
-settings_bp = Blueprint('settings', __name__)
+settings_bp = Blueprint(
+    "settings",
+    __name__,
+    url_prefix="/settings"
+)
 
-@settings_bp.route('/', methods=['GET', 'POST'])
+# Kept hidden for now; ready to enable Friends & Messaging in the future
+ENABLE_MESSAGING = False
+
+
+def get_ist_now():
+    return datetime.utcnow() + timedelta(hours=5, minutes=30)
+
+
+@settings_bp.route("/")
 @login_required
-def settings_page():
-    if request.method == 'POST':
-        current_user.daily_study_goal_hours = float(request.form.get('daily_study_goal', 6.0))
-        current_user.target_board_score = float(request.form.get('target_board_score', 95.0))
-        current_user.theme = request.form.get('theme', 'dark')
-        current_user.accent_color = request.form.get('accent_color', '#3b82f6')
+def index():
+    saved_loc = DeviceLocation.query.filter_by(user_id=current_user.id).first()
+    return render_template(
+        "settings/index.html",
+        saved_loc=saved_loc,
+        enable_messaging=ENABLE_MESSAGING,
+        auth_disabled=current_app.config.get("DISABLE_AUTH", False),
+    )
 
-        db.session.commit()
-        flash('Preferences and target goals updated successfully!', 'success')
-        return redirect(url_for('settings.settings_page'))
 
-    return render_template('settings/settings.html', user=current_user)
-
-@settings_bp.route('/backup/download')
+@settings_bp.route("/location", methods=["POST"])
 @login_required
-def download_backup():
-    """Allows downloading the SQLite database file as a manual backup."""
-    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../studyos_production.db')
-    if os.path.exists(db_path):
-        return send_file(db_path, as_attachment=True, download_name='studyos_backup.db')
-    flash('Database file not found.', 'danger')
-    return redirect(url_for('settings.settings_page'))
+def save_location():
+    data = request.get_json(silent=True) or {}
+    try:
+        lat = float(data.get("latitude"))
+        lng = float(data.get("longitude"))
+        accuracy = float(data.get("accuracy") or 0)
+    except (TypeError, ValueError):
+        return jsonify({"ok": False}), 400
+
+    address = (data.get("address") or "").strip()[:300]
+    now_ist = get_ist_now()
+
+    loc = DeviceLocation.query.filter_by(user_id=current_user.id).first()
+    if not loc:
+        loc = DeviceLocation(user_id=current_user.id)
+        db.session.add(loc)
+
+    loc.latitude = lat
+    loc.longitude = lng
+    loc.accuracy = round(accuracy, 1)
+    if address:
+        loc.address = address
+    loc.updated_at = now_ist
+
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "updated_at": now_ist.strftime("%d %b %Y, %I:%M %p"),
+    })
+
+
+@settings_bp.route("/logout")
+@login_required
+def logout_action():
+    if current_app.config.get("DISABLE_AUTH"):
+        flash("Account login is currently disabled.", "info")
+        return redirect(url_for("settings.index"))
+
+    logout_user()
+    flash("Logged out.", "info")
+    return redirect(url_for("auth.login"))
