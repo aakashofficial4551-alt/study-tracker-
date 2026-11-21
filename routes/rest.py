@@ -20,6 +20,8 @@ rest_bp = Blueprint(
     url_prefix="/rest"
 )
 
+ONLINE_WINDOW_MINUTES = 2
+
 
 def get_ist_now():
     return datetime.utcnow() + timedelta(hours=5, minutes=30)
@@ -72,12 +74,35 @@ def search_users():
     })
 
 
+@rest_bp.route("/check")
+@login_required
+def check_latest():
+    auth_disabled = bool(current_app.config.get("DISABLE_AUTH", False))
+    device_id = (request.args.get("device_id") or "").strip()[:64]
+
+    if auth_disabled:
+        q = RestMessage.query.filter(RestMessage.receiver_id.is_(None))
+        if device_id:
+            q = q.filter(RestMessage.sender_device != device_id)
+        latest = q.order_by(RestMessage.id.desc()).first()
+    else:
+        latest = (
+            RestMessage.query
+            .filter(RestMessage.receiver_id == current_user.id)
+            .order_by(RestMessage.id.desc())
+            .first()
+        )
+
+    return jsonify({"latest_id": latest.id if latest else 0})
+
+
 @rest_bp.route("/feed")
 @login_required
 def feed():
     auth_disabled = bool(current_app.config.get("DISABLE_AUTH", False))
     device_id = (request.args.get("device_id") or "").strip()[:64]
     target_id = request.args.get("u", type=int)
+    cutoff = get_ist_now() - timedelta(minutes=ONLINE_WINDOW_MINUTES)
 
     if auth_disabled:
         msgs = (
@@ -93,42 +118,43 @@ def feed():
                 "body": m.body,
                 "mine": bool(device_id and m.sender_device == device_id),
                 "time": m.created_at.strftime("%I:%M %p") if m.created_at else "",
-                "date": m.created_at.strftime("%d %b") if m.created_at else "",
             }
             for m in msgs
         ]
 
-        # Live devices active in the last 30 minutes
-        cutoff = get_ist_now() - timedelta(minutes=30)
-        devices = (
-            LiveDevice.query
-            .filter(
-                LiveDevice.latitude.isnot(None),
-                LiveDevice.longitude.isnot(None),
-                LiveDevice.updated_at >= cutoff,
+        # Only return OTHER person's live location if online (never own location)
+        peer_dev = None
+        if device_id:
+            peer_dev = (
+                LiveDevice.query
+                .filter(
+                    LiveDevice.device_id != device_id,
+                    LiveDevice.latitude.isnot(None),
+                    LiveDevice.longitude.isnot(None),
+                    LiveDevice.updated_at >= cutoff,
+                )
+                .order_by(LiveDevice.updated_at.desc())
+                .first()
             )
-            .order_by(LiveDevice.updated_at.desc())
-            .all()
-        )
 
-        # Prefer showing other active device(s); fallback to any active device
-        locations = [
-            {
-                "mine": bool(device_id and d.device_id == device_id),
-                "latitude": d.latitude,
-                "longitude": d.longitude,
-                "accuracy": d.accuracy,
-                "address": d.address or "",
-                "updated_at": d.updated_at.strftime("%I:%M %p") if d.updated_at else "",
+        peer_location = None
+        if peer_dev:
+            peer_location = {
+                "latitude": peer_dev.latitude,
+                "longitude": peer_dev.longitude,
+                "accuracy": peer_dev.accuracy,
+                "updated_at": peer_dev.updated_at.strftime("%I:%M %p") if peer_dev.updated_at else "",
             }
-            for d in devices
-        ]
 
-        return jsonify({"items": items, "locations": locations})
+        return jsonify({
+            "items": items,
+            "peer_online": peer_location is not None,
+            "peer_location": peer_location,
+        })
 
-    # Authenticated 1-on-1 mode (when DISABLE_AUTH = False)
+    # Authenticated 1-on-1 mode
     if not target_id or target_id == current_user.id:
-        return jsonify({"items": [], "locations": []})
+        return jsonify({"items": [], "peer_online": False, "peer_location": None})
 
     msgs = (
         RestMessage.query
@@ -149,24 +175,35 @@ def feed():
             "body": m.body,
             "mine": m.sender_id == current_user.id,
             "time": m.created_at.strftime("%I:%M %p") if m.created_at else "",
-            "date": m.created_at.strftime("%d %b") if m.created_at else "",
         }
         for m in msgs
     ]
 
-    peer_loc = DeviceLocation.query.filter_by(user_id=target_id).first()
-    locations = []
-    if peer_loc and peer_loc.latitude is not None and peer_loc.longitude is not None:
-        locations.append({
-            "mine": False,
+    peer_loc = (
+        DeviceLocation.query
+        .filter(
+            DeviceLocation.user_id == target_id,
+            DeviceLocation.latitude.isnot(None),
+            DeviceLocation.longitude.isnot(None),
+            DeviceLocation.updated_at >= cutoff,
+        )
+        .first()
+    )
+
+    peer_location = None
+    if peer_loc:
+        peer_location = {
             "latitude": peer_loc.latitude,
             "longitude": peer_loc.longitude,
             "accuracy": peer_loc.accuracy,
-            "address": peer_loc.address or "",
-            "updated_at": peer_loc.updated_at.strftime("%d %b, %I:%M %p") if peer_loc.updated_at else "",
-        })
+            "updated_at": peer_loc.updated_at.strftime("%I:%M %p") if peer_loc.updated_at else "",
+        }
 
-    return jsonify({"items": items, "locations": locations})
+    return jsonify({
+        "items": items,
+        "peer_online": peer_location is not None,
+        "peer_location": peer_location,
+    })
 
 
 @rest_bp.route("/send", methods=["POST"])
@@ -217,7 +254,6 @@ def ping_location():
     except (TypeError, ValueError):
         return jsonify({"ok": False}), 400
 
-    address = (data.get("address") or "").strip()[:300]
     now_ist = get_ist_now()
 
     if device_id:
@@ -229,8 +265,6 @@ def ping_location():
         dev.latitude = lat
         dev.longitude = lng
         dev.accuracy = round(accuracy, 1)
-        if address:
-            dev.address = address
         dev.updated_at = now_ist
 
     loc = DeviceLocation.query.filter_by(user_id=current_user.id).first()
@@ -240,9 +274,7 @@ def ping_location():
     loc.latitude = lat
     loc.longitude = lng
     loc.accuracy = round(accuracy, 1)
-    if address:
-        loc.address = address
     loc.updated_at = now_ist
 
     db.session.commit()
-    return jsonify({"ok": True, "updated_at": now_ist.strftime("%I:%M %p")})
+    return jsonify({"ok": True})
