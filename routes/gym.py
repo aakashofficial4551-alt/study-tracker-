@@ -14,54 +14,50 @@ gym_bp = Blueprint(
 WORKOUT_PLAN = {
     1: {
         "title": "Chest & Triceps",
-        "focus": "Push Upper Body",
         "exercises": [
-            {"name": "Flat Bench Press", "sets": "4 sets x 8-12 reps"},
-            {"name": "Incline Dumbbell Press", "sets": "3 sets x 10-12 reps"},
-            {"name": "Dumbbell / Cable Chest Fly", "sets": "3 sets x 12-15 reps"},
-            {"name": "Push-Ups", "sets": "3 sets x Failure"},
-            {"name": "Tricep Rope Pushdown", "sets": "3 sets x 12-15 reps"},
-            {"name": "Overhead Tricep Extension", "sets": "3 sets x 10-12 reps"},
-            {"name": "Bench / Parallel Dips", "sets": "3 sets x 10-12 reps"},
+            "Flat Bench Press",
+            "Incline Dumbbell Press",
+            "Cable Chest Fly",
+            "Push-Ups",
+            "Tricep Rope Pushdown",
+            "Overhead Tricep Extension",
+            "Dips",
         ],
     },
     2: {
         "title": "Back & Biceps",
-        "focus": "Pull Upper Body",
         "exercises": [
-            {"name": "Pull-Ups / Lat Pulldown", "sets": "4 sets x 8-12 reps"},
-            {"name": "Barbell / Dumbbell Row", "sets": "4 sets x 8-12 reps"},
-            {"name": "Seated Cable Row", "sets": "3 sets x 10-12 reps"},
-            {"name": "Face Pulls", "sets": "3 sets x 15 reps"},
-            {"name": "Barbell / EZ-Bar Bicep Curl", "sets": "3 sets x 10-12 reps"},
-            {"name": "Hammer Curls", "sets": "3 sets x 12 reps"},
-            {"name": "Concentration / Preacher Curl", "sets": "3 sets x 12 reps"},
+            "Pull-Ups / Lat Pulldown",
+            "Barbell / Dumbbell Row",
+            "Seated Cable Row",
+            "Face Pulls",
+            "Barbell Bicep Curl",
+            "Hammer Curls",
+            "Preacher Curl",
         ],
     },
     3: {
         "title": "Shoulder & Abs",
-        "focus": "Delts & Core",
         "exercises": [
-            {"name": "Overhead Shoulder Press", "sets": "4 sets x 8-12 reps"},
-            {"name": "Dumbbell Lateral Raises", "sets": "4 sets x 12-15 reps"},
-            {"name": "Front Raises", "sets": "3 sets x 12 reps"},
-            {"name": "Rear Delt Fly", "sets": "3 sets x 12-15 reps"},
-            {"name": "Dumbbell Shrugs", "sets": "3 sets x 15 reps"},
-            {"name": "Hanging Leg Raises", "sets": "3 sets x 12-15 reps"},
-            {"name": "Plank", "sets": "3 sets x 60 sec"},
-            {"name": "Crunches / Russian Twists", "sets": "3 sets x 20 reps"},
+            "Overhead Shoulder Press",
+            "Lateral Raises",
+            "Front Raises",
+            "Rear Delt Fly",
+            "Dumbbell Shrugs",
+            "Hanging Leg Raises",
+            "Plank",
+            "Crunches",
         ],
     },
     4: {
         "title": "Legs & Squats",
-        "focus": "Lower Body Power",
         "exercises": [
-            {"name": "Barbell / Bodyweight Squats", "sets": "4 sets x 8-12 reps"},
-            {"name": "Leg Press", "sets": "3 sets x 10-12 reps"},
-            {"name": "Walking Lunges", "sets": "3 sets x 12 reps/leg"},
-            {"name": "Leg Extensions", "sets": "3 sets x 12-15 reps"},
-            {"name": "Hamstring Curls", "sets": "3 sets x 12-15 reps"},
-            {"name": "Standing Calf Raises", "sets": "4 sets x 15-20 reps"},
+            "Squats",
+            "Leg Press",
+            "Walking Lunges",
+            "Leg Extensions",
+            "Hamstring Curls",
+            "Calf Raises",
         ],
     },
 }
@@ -84,9 +80,7 @@ def index():
     )
 
     last_log = logs[0] if logs else None
-    next_day = 1
-    if last_log:
-        next_day = (last_log.day_number % 4) + 1
+    next_day = ((last_log.day_number % 4) + 1) if last_log else 1
 
     active_day = request.args.get("day", type=int) or next_day
     if active_day not in WORKOUT_PLAN:
@@ -96,8 +90,6 @@ def index():
         "gym/index.html",
         plan=WORKOUT_PLAN,
         active_day=active_day,
-        next_day=next_day,
-        last_log=last_log,
         logs=logs,
         today=today,
     )
@@ -140,10 +132,7 @@ def log_workout():
     db.session.add(new_log)
     db.session.commit()
 
-    flash(
-        f"Day {day_number} ({plan_day['title']}) workout saved!",
-        "success"
-    )
+    flash("Saved.", "success")
     return redirect(url_for("gym.index", day=(day_number % 4) + 1))
 
 
@@ -154,5 +143,5 @@ def delete_log(id):
     if log.user_id == current_user.id:
         db.session.delete(log)
         db.session.commit()
-        flash("Workout log deleted.", "info")
+        flash("Deleted.", "info")
     return redirect(url_for("gym.index"))
