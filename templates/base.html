@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#07070a">
+    <meta name="theme-color" content="#060609">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{% block title %}StudyOS{% endblock %}</title>
+    <title>{% block title %}UR RECORDS{% endblock %}</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <style>
         :root {
-            --bg-black: #07070a;
-            --bg-card: #121219;
-            --bg-surface: #1a1a24;
-            --border-subtle: rgba(255, 255, 255, 0.08);
+            --bg-black: #060609;
+            --bg-card: #111118;
+            --bg-surface: #191924;
+            --border-subtle: rgba(255, 255, 255, 0.09);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --red: #ff2e4c;
-            --pink: #ff2a85;
-            --green: #10b981;
+            --red: #ff2442;
+            --pink: #ff2e88;
+            --green: #16c784;
             --green-bright: #22c55e;
             --amber: #f59e0b;
-            --blue: #3b82f6;
-            --grad-primary: linear-gradient(135deg, #ff2e4c 0%, #ff2a85 100%);
+            --grad-primary: linear-gradient(135deg, #ff2442 0%, #ff2e88 100%);
             --grad-green: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
         }
 
@@ -37,13 +36,16 @@
 
         body {
             background-color: var(--bg-black);
+            background-image:
+                radial-gradient(circle at 12% 0%, rgba(255, 36, 66, 0.12), transparent 38%),
+                radial-gradient(circle at 88% 8%, rgba(255, 46, 136, 0.10), transparent 36%);
             color: var(--text-main);
             min-height: 100vh;
             line-height: 1.45;
             overflow-x: hidden;
         }
 
-        /* Top App Bar */
+        /* Top Bar */
         .navbar {
             position: sticky;
             top: 0;
@@ -51,16 +53,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
-            background: rgba(12, 12, 18, 0.9);
-            backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--border-subtle);
+            padding: 13px 16px;
+            background: rgba(9, 9, 14, 0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 46, 136, 0.18);
         }
 
         .navbar .brand {
-            font-size: 1.2rem;
-            font-weight: 800;
-            letter-spacing: 0.4px;
+            font-size: 1.18rem;
+            font-weight: 900;
+            letter-spacing: 0.9px;
             text-decoration: none;
             background: var(--grad-primary);
             -webkit-background-clip: text;
@@ -76,9 +78,9 @@
         .desktop-nav a {
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 600;
-            padding: 7px 12px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            padding: 8px 13px;
             border-radius: 10px;
             transition: 0.2s;
         }
@@ -86,12 +88,12 @@
         .desktop-nav a:hover,
         .desktop-nav a.active {
             color: #fff;
-            background: rgba(255, 42, 133, 0.14);
+            background: rgba(255, 46, 136, 0.16);
         }
 
         .logout-pill {
             color: var(--red) !important;
-            border: 1px solid rgba(255, 46, 76, 0.35);
+            border: 1px solid rgba(255, 36, 66, 0.38);
             padding: 6px 12px !important;
             border-radius: 999px !important;
             font-size: 0.82rem !important;
@@ -99,11 +101,24 @@
             text-decoration: none;
         }
 
-        /* Main App Container */
+        /* Main Container + Slide Animation */
         .container {
             max-width: 960px;
             margin: 16px auto;
             padding: 0 14px 32px 14px;
+            transition: transform 0.22s ease, opacity 0.22s ease;
+        }
+
+        .slide-in-right { animation: slideInRight 0.24s ease-out; }
+        .slide-in-left { animation: slideInLeft 0.24s ease-out; }
+
+        @keyframes slideInRight {
+            from { opacity: 0.4; transform: translateX(32px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0.4; transform: translateX(-32px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         /* Cards */
@@ -113,7 +128,7 @@
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 14px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42);
         }
 
         .stats-grid {
@@ -155,11 +170,11 @@
 
         .btn:active { transform: scale(0.97); }
         .btn-success { background: var(--grad-green); color: #041d11; }
-        .btn-danger { background: rgba(255, 46, 76, 0.16); color: var(--red); border: 1px solid rgba(255, 46, 76, 0.4); }
+        .btn-danger { background: rgba(255, 36, 66, 0.15); color: var(--red); border: 1px solid rgba(255, 36, 66, 0.42); }
         .btn-dark { background: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle); }
         .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 0.82rem; border-radius: 9px; }
 
-        /* Form Elements (16px font stops mobile zoom) */
+        /* Form Elements */
         input, select, textarea {
             width: 100%;
             padding: 11px 13px;
@@ -175,7 +190,7 @@
 
         input:focus, select:focus, textarea:focus {
             border-color: var(--pink);
-            box-shadow: 0 0 0 2px rgba(255, 42, 133, 0.2);
+            box-shadow: 0 0 0 2px rgba(255, 46, 136, 0.22);
         }
 
         label { font-size: 0.86rem; color: var(--text-muted); font-weight: 600; }
@@ -189,10 +204,10 @@
             font-weight: 600;
             border: 1px solid transparent;
         }
-        .alert-success { background: rgba(16, 185, 129, 0.14); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
-        .alert-danger { background: rgba(255, 46, 76, 0.14); color: #fda4af; border-color: rgba(255, 46, 76, 0.35); }
-        .alert-warning { background: rgba(245, 158, 11, 0.14); color: #fcd34d; border-color: rgba(245, 158, 11, 0.35); }
-        .alert-info { background: rgba(59, 130, 246, 0.14); color: #93c5fd; border-color: rgba(59, 130, 246, 0.35); }
+        .alert-success { background: rgba(22, 199, 132, 0.14); color: #6ee7b7; border-color: rgba(22, 199, 132, 0.38); }
+        .alert-danger { background: rgba(255, 36, 66, 0.14); color: #fda4af; border-color: rgba(255, 36, 66, 0.38); }
+        .alert-warning { background: rgba(245, 158, 11, 0.14); color: #fcd34d; border-color: rgba(245, 158, 11, 0.38); }
+        .alert-info { background: rgba(255, 46, 136, 0.14); color: #f9a8d4; border-color: rgba(255, 46, 136, 0.38); }
 
         .auth-box { max-width: 420px; margin: 28px auto; }
         .error-text { color: var(--red); font-size: 0.82rem; margin-top: -8px; margin-bottom: 10px; }
@@ -219,44 +234,56 @@
             transition: width 0.3s ease;
         }
 
-        /* Mobile Bottom Navigation Bar */
+        /* Standard Bigger Mobile Bottom Navigation Bar */
         .bottom-nav {
             display: none;
         }
 
         @media (max-width: 768px) {
             .desktop-nav { display: none; }
-            .container { padding: 0 12px 92px 12px; margin-top: 12px; }
+            .container { padding: 0 12px 104px 12px; margin-top: 12px; }
             .bottom-nav {
                 position: fixed;
                 bottom: 0;
                 left: 0;
                 right: 0;
-                z-index: 100;
+                z-index: 1000;
                 display: grid;
                 grid-template-columns: repeat(5, 1fr);
-                background: rgba(12, 12, 18, 0.96);
-                backdrop-filter: blur(16px);
-                border-top: 1px solid var(--border-subtle);
-                padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+                align-items: center;
+                gap: 4px;
+                min-height: 68px;
+                background: rgba(10, 10, 16, 0.97);
+                backdrop-filter: blur(18px);
+                border-top: 1px solid rgba(255, 46, 136, 0.22);
+                padding: 9px 8px calc(10px + env(safe-area-inset-bottom));
             }
             .bottom-nav a {
                 display: flex;
-                flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                gap: 3px;
+                min-height: 46px;
                 text-decoration: none;
                 color: var(--text-muted);
-                font-size: 0.7rem;
+                font-size: 0.88rem;
                 font-weight: 700;
-                padding: 4px 2px;
-                border-radius: 10px;
+                border-radius: 12px;
+                letter-spacing: 0.2px;
+                transition: background 0.2s, color 0.2s, transform 0.1s;
             }
-            .bottom-nav a .nav-icon { font-size: 1.15rem; line-height: 1; }
+            .bottom-nav a:active { transform: scale(0.95); }
+            .bottom-nav a.nav-home {
+                font-size: 0.94rem;
+                font-weight: 800;
+                color: #f8fafc;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
             .bottom-nav a.active {
-                color: var(--pink);
-                background: rgba(255, 42, 133, 0.1);
+                color: #ffffff;
+                background: var(--grad-primary);
+                border-color: transparent;
+                box-shadow: 0 4px 14px rgba(255, 46, 136, 0.35);
             }
         }
     </style>
@@ -265,15 +292,15 @@
     {% set ep = request.endpoint or '' %}
 
     <nav class="navbar">
-        <a href="{{ url_for('dashboard.dashboard') }}" class="brand">STUDY OS</a>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="brand">UR RECORDS</a>
 
         <div class="desktop-nav">
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('dashboard.dashboard') }}" class="{% if 'dashboard' in ep %}active{% endif %}">Dashboard</a>
                 <a href="{{ url_for('habits.daily_tracker') }}" class="{% if 'habits' in ep %}active{% endif %}">Task</a>
-                <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
                 <a href="{{ url_for('gym.index') }}" class="{% if 'gym' in ep %}active{% endif %}">Gym</a>
-                <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subjects</a>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="{% if 'dashboard' in ep %}active{% endif %}">Home</a>
+                <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
+                <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subject</a>
                 {% if not config.get('DISABLE_AUTH') %}
                     <a href="{{ url_for('auth.logout') }}" class="logout-pill">Logout</a>
                 {% endif %}
@@ -283,18 +310,15 @@
             {% endif %}
         </div>
 
-        {% if current_user.is_authenticated and not config.get('DISABLE_AUTH') %}
-            <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
-        {% endif %}
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button id="install-app-btn" class="btn btn-sm" style="display:none;">Install</button>
+            {% if current_user.is_authenticated and not config.get('DISABLE_AUTH') %}
+                <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
+            {% endif %}
+        </div>
     </nav>
 
-        {% if current_user.is_authenticated %}
-            <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
-        {% endif %}
-    <button id="install-app-btn" class="btn btn-sm" style="display:none;">Install App</button>
-    </nav>
-
-    <div class="container">
+    <div class="container" id="main-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -308,51 +332,27 @@
 
     {% if current_user.is_authenticated %}
     <nav class="bottom-nav">
-        <a href="{{ url_for('dashboard.dashboard') }}" class="{% if 'dashboard' in ep %}active{% endif %}">Home</a>
         <a href="{{ url_for('habits.daily_tracker') }}" class="{% if 'habits' in ep %}active{% endif %}">Task</a>
-        <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
         <a href="{{ url_for('gym.index') }}" class="{% if 'gym' in ep %}active{% endif %}">Gym</a>
-        <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subjects</a>
+        <a href="{{ url_for('dashboard.dashboard') }}" class="nav-home {% if 'dashboard' in ep %}active{% endif %}">Home</a>
+        <a href="{{ url_for('study.home') }}" class="{% if 'study' in ep %}active{% endif %}">Timer</a>
+        <a href="{{ url_for('subject.subjects') }}" class="{% if 'subject' in ep %}active{% endif %}">Subject</a>
     </nav>
     {% endif %}
 
-    <!-- Global Theme Polish for Task & Gym Pages -->
     <style>
         @media (max-width: 768px) {
             #mobile-logout { display: inline-block !important; }
         }
-        /* Upgrade Task & Gym cards to Red/Black/Pink/Green Theme automatically */
-        .check-box, .ex-item, .mini-box, .tag {
-            background: #0b0b10 !important;
-            border-color: rgba(255, 255, 255, 0.09) !important;
-        }
-        .sec-label { color: #ff2a85 !important; }
-        .check-box[data-type="positive"] .yn-toggle input[value="yes"]:checked + label {
-            background: #10b981 !important;
-            color: #041d11 !important;
-        }
-        .check-box[data-type="avoid"] .yn-toggle input[value="yes"]:checked + label {
-            background: #ff2e4c !important;
-            color: #ffffff !important;
-        }
-        .check-box[data-type="avoid"] .yn-toggle input[value="no"]:checked + label {
-            background: #10b981 !important;
-            color: #041d11 !important;
-        }
         .period-tab.active, .day-tab.active {
-            background: linear-gradient(135deg, #ff2e4c 0%, #ff2a85 100%) !important;
+            background: linear-gradient(135deg, #ff2442 0%, #ff2e88 100%) !important;
             color: #ffffff !important;
             border-color: transparent !important;
         }
-        .day-tab {
-            background: #121219 !important;
-            border-color: rgba(255, 255, 255, 0.09) !important;
-        }
-        .ex-left input[type="checkbox"] {
-            accent-color: #22c55e;
-        }
     </style>
+
     <script>
+        // PWA Service Worker & Install Button
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
                 navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
@@ -381,6 +381,71 @@
         window.addEventListener("appinstalled", () => {
             if (installBtn) installBtn.style.display = "none";
         });
+
+        // Instagram-like Horizontal Swipe Navigation across tabs
+        (function () {
+            const tabs = [
+                { prefix: "/daily", url: "/daily/" },
+                { prefix: "/gym", url: "/gym/" },
+                { prefix: "/dashboard", url: "/dashboard/" },
+                { prefix: "/study", url: "/study/" },
+                { prefix: "/subjects", url: "/subjects/" }
+            ];
+
+            const container = document.getElementById("main-container");
+            const swipeDir = sessionStorage.getItem("ur_swipe_dir");
+            if (swipeDir && container) {
+                container.classList.add(swipeDir === "left" ? "slide-in-right" : "slide-in-left");
+                sessionStorage.removeItem("ur_swipe_dir");
+            }
+
+            const path = window.location.pathname;
+            const currentIndex = tabs.findIndex(t => path.startsWith(t.prefix));
+            if (currentIndex === -1) return;
+
+            let startX = 0;
+            let startY = 0;
+            let tracking = false;
+
+            document.addEventListener("touchstart", (e) => {
+                if (e.touches.length !== 1) return;
+                // Do not swipe when touching map, inputs, or scrollable tables
+                if (e.target.closest(".leaflet-container, input, textarea, select, table")) {
+                    tracking = false;
+                    return;
+                }
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                tracking = true;
+            }, { passive: true });
+
+            document.addEventListener("touchend", (e) => {
+                if (!tracking || e.changedTouches.length !== 1) return;
+                tracking = false;
+
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+
+                // Trigger only on clean horizontal swipe
+                if (Math.abs(dx) < 68 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+                if (dx < 0 && currentIndex < tabs.length - 1) {
+                    sessionStorage.setItem("ur_swipe_dir", "left");
+                    if (container) {
+                        container.style.transform = "translateX(-28px)";
+                        container.style.opacity = "0.5";
+                    }
+                    window.location.href = tabs[currentIndex + 1].url;
+                } else if (dx > 0 && currentIndex > 0) {
+                    sessionStorage.setItem("ur_swipe_dir", "right");
+                    if (container) {
+                        container.style.transform = "translateX(28px)";
+                        container.style.opacity = "0.5";
+                    }
+                    window.location.href = tabs[currentIndex - 1].url;
+                }
+            }, { passive: true });
+        })();
     </script>
 </body>
 </html>
