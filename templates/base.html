@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#060609">
+    <meta name="theme-color" content="#060609" id="meta-theme-color">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% block title %}UR RECORDS{% endblock %}</title>
@@ -16,7 +16,8 @@
         })();
     </script>
     <style>
-        :root {
+        :root,
+        [data-theme="dark"] {
             --bg-black: #060609;
             --bg-card: #111118;
             --bg-surface: #191924;
@@ -121,9 +122,7 @@
             border: 1px solid var(--border-subtle);
             color: var(--text-main);
             text-decoration: none;
-            transition: transform 0.12s ease;
         }
-        .settings-icon-btn:active { transform: scale(0.94); }
         .settings-icon-btn.active {
             background: var(--grad-primary);
             color: #ffffff;
@@ -241,7 +240,7 @@
         }
         .progress-fill { height: 100%; background: var(--grad-green); border-radius: 999px; transition: width 0.3s ease; }
 
-        /* Light Mode Compatibility Overrides for Inner Cards */
+        /* Light Mode Compatibility */
         [data-theme="light"] .kpi-card,
         [data-theme="light"] .quick-tile,
         [data-theme="light"] .day-tab {
@@ -375,7 +374,50 @@
     {% endif %}
 
     <script>
-        // PWA Registration & Install
+        // Global Theme Helper
+        window.applyAppTheme = function (theme) {
+            const val = theme === "light" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", val);
+            localStorage.setItem("ur_theme", val);
+            const meta = document.getElementById("meta-theme-color");
+            if (meta) meta.setAttribute("content", val === "light" ? "#f3f4f8" : "#060609");
+        };
+        window.applyAppTheme(localStorage.getItem("ur_theme") || "dark");
+
+        // Global Device ID
+        window.getUrDeviceId = function () {
+            let id = localStorage.getItem("ur_device_id");
+            if (!id) {
+                id = "dev_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem("ur_device_id", id);
+            }
+            return id;
+        };
+
+        // Global "Take a break" Notification Helper
+        window.showBreakNotification = async function () {
+            if (!("Notification" in window) || Notification.permission !== "granted") return;
+            try {
+                if ("serviceWorker" in navigator) {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    if (reg && reg.showNotification) {
+                        reg.showNotification("UR RECORDS", {
+                            body: "Take a break",
+                            icon: "/static/icons/icon-192.png",
+                            tag: "ur-break-alert",
+                            renotify: true
+                        });
+                        return;
+                    }
+                }
+                new Notification("UR RECORDS", {
+                    body: "Take a break",
+                    icon: "/static/icons/icon-192.png"
+                });
+            } catch (e) {}
+        };
+
+        // PWA Service Worker & Install
         if ("serviceWorker" in navigator) {
             window.addEventListener("load", () => {
                 navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
@@ -401,6 +443,101 @@
         window.addEventListener("appinstalled", () => {
             if (installBtn) installBtn.style.display = "none";
         });
+
+        // Digital Wellbeing Tracker (tracks active time today when enabled)
+        (function () {
+            function todayKey() {
+                const d = new Date();
+                return "ur_wellbeing_" + d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+            }
+
+            window.getWellbeingSeconds = function () {
+                return parseInt(localStorage.getItem(todayKey()) || "0", 10);
+            };
+
+            let continuousSecs = 0;
+
+            setInterval(() => {
+                if (document.visibilityState !== "visible") return;
+                if (localStorage.getItem("ur_wellbeing_enabled") !== "true") return;
+
+                const secs = window.getWellbeingSeconds() + 1;
+                localStorage.setItem(todayKey(), String(secs));
+                continuousSecs++;
+
+                // Break alert every 45 mins of active usage
+                if (continuousSecs > 0 && continuousSecs % 2700 === 0) {
+                    if (localStorage.getItem("ur_break_alerts") === "true") {
+                        window.showBreakNotification();
+                    }
+                }
+            }, 1000);
+        })();
+
+        // Background "Take a break" Alert on New Rest Text
+        (function () {
+            if (window.location.pathname.startsWith("/auth")) return;
+            const devId = window.getUrDeviceId();
+
+            async function checkIncoming() {
+                try {
+                    const res = await fetch("/rest/check?device_id=" + encodeURIComponent(devId));
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (!data.latest_id) return;
+
+                    const lastSeen = parseInt(localStorage.getItem("ur_last_rest_id") || "0", 10);
+                    if (lastSeen === 0) {
+                        localStorage.setItem("ur_last_rest_id", String(data.latest_id));
+                        return;
+                    }
+                    if (data.latest_id > lastSeen) {
+                        localStorage.setItem("ur_last_rest_id", String(data.latest_id));
+                        if (!window.location.pathname.startsWith("/rest")) {
+                            window.showBreakNotification();
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            checkIncoming();
+            setInterval(checkIncoming, 6000);
+        })();
+
+        // Silent Online Location Ping (only if GPS permission already granted)
+        (function () {
+            if (!("geolocation" in navigator)) return;
+            const devId = window.getUrDeviceId();
+
+            function sendHeartbeat() {
+                if (document.visibilityState !== "visible") return;
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        fetch("/rest/ping", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                device_id: devId,
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy
+                            })
+                        }).catch(() => {});
+                    },
+                    () => {},
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+                );
+            }
+
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: "geolocation" }).then((status) => {
+                    if (status.state === "granted") {
+                        sendHeartbeat();
+                        setInterval(sendHeartbeat, 20000);
+                    }
+                }).catch(() => {});
+            }
+        })();
 
         // Instagram-like Horizontal Swipe Navigation
         (function () {
@@ -452,43 +589,6 @@
                     window.location.href = tabs[currentIndex - 1].url;
                 }
             }, { passive: true });
-        })();
-        // Silent live location heartbeat while app is open (if permission granted)
-        (function () {
-            if (!('geolocation' in navigator)) return;
-            let devId = localStorage.getItem('ur_device_id');
-            if (!devId) {
-                devId = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-                localStorage.setItem('ur_device_id', devId);
-            }
-
-            function sendHeartbeat() {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        fetch('/rest/ping', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                device_id: devId,
-                                latitude: pos.coords.latitude,
-                                longitude: pos.coords.longitude,
-                                accuracy: pos.coords.accuracy
-                            })
-                        }).catch(() => {});
-                    },
-                    () => {},
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
-                );
-            }
-
-            if (navigator.permissions && navigator.permissions.query) {
-                navigator.permissions.query({ name: 'geolocation' }).then((status) => {
-                    if (status.state === 'granted') {
-                        sendHeartbeat();
-                        setInterval(sendHeartbeat, 25000);
-                    }
-                }).catch(() => {});
-            }
         })();
     </script>
 </body>
