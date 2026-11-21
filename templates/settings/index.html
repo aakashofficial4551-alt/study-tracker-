@@ -149,7 +149,7 @@
     </div>
 </div>
 
-<!-- ACCOUNT / LOGOUT -->
+<!-- ACCOUNT -->
 <div class="card">
     <div class="setting-row">
         <div>
@@ -158,11 +158,27 @@
                 {% if auth_disabled %}Auto sign-in active{% else %}{{ current_user.username }}{% endif %}
             </p>
         </div>
-        <a href="{{ url_for('settings.logout_action') }}" class="btn btn-danger btn-sm">Logout</a>
+        <a href="{{ url_for('settings.logout_action') }}" class="btn btn-dark btn-sm">Logout</a>
+    </div>
+
+    <div style="border-top:1px solid var(--border-subtle); margin-top:12px; padding-top:12px; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <div>
+            <strong style="font-size:0.9rem; color:#ff2442;">Delete Account</strong>
+            <p style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Permanently erase account and all records</p>
+        </div>
+        <form method="POST" action="{{ url_for('settings.delete_account') }}" onsubmit="return confirmDeleteAll();">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
     </div>
 </div>
 
-<script>
+<!-- DISCREET REST ENTRY -->
+<div class="card" style="padding:12px 16px;">
+    <a href="{{ url_for('rest.index') }}" style="display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:var(--text-muted); font-size:0.88rem; font-weight:600;">
+        <span>Rest</span>
+        <span>&rsaquo;</span>
+    </a>
+</div>
     // Theme Buttons Sync
     function syncThemeButtons() {
         const current = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -272,5 +288,11 @@
 
     // Automatically request location on page load to keep coordinates fresh
     fetchExactLocation();
+function confirmDeleteAll() {
+        if (!confirm('Delete account and all records permanently?')) return false;
+        localStorage.clear();
+        sessionStorage.clear();
+        return true;
+    }
 </script>
 {% endblock %}
