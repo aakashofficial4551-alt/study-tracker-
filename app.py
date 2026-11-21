@@ -12,6 +12,8 @@ from models.user import User
 from models.habits import DailyProgress
 from models.gym import GymLog
 from models.mock_test import TestRecord
+from models.topic import SyllabusChapter, seed_cbse_syllabus
+from models.settings import DeviceLocation
 
 # Import blueprints
 from routes.auth import auth_bp
@@ -23,7 +25,7 @@ from routes.analytics import analytics_bp
 from routes.task import task_bp
 from routes.habits import habits_bp
 from routes.gym import gym_bp
-# from routes.settings import settings_bp  # Disabled because it hijacked "/"
+from routes.settings import settings_bp
 
 
 def ensure_schema_columns():
@@ -44,26 +46,22 @@ def ensure_schema_columns():
 def create_app():
     app = Flask(__name__)
 
-    # Load Config
     app.config.from_object(Config)
 
-    # Set to False in the future when you want login back
+    # Set to False when you want account login & friends active
     app.config["DISABLE_AUTH"] = True
 
     os.makedirs(app.instance_path, exist_ok=True)
 
-    # Initialize Extensions
     db.init_app(app)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
 
-    # Home route registered FIRST so no blueprint can override "/"
     @app.route("/")
     def home():
         return redirect(url_for("dashboard.dashboard"))
 
-    # Register Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(subject_bp)
@@ -73,6 +71,7 @@ def create_app():
     app.register_blueprint(task_bp)
     app.register_blueprint(habits_bp)
     app.register_blueprint(gym_bp)
+    app.register_blueprint(settings_bp)
 
     @app.before_request
     def auto_login_owner():
@@ -97,6 +96,7 @@ def create_app():
     with app.app_context():
         db.create_all()
         ensure_schema_columns()
+        seed_cbse_syllabus()
 
     return app
 
