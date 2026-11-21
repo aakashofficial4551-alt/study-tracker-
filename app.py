@@ -14,6 +14,7 @@ from models.gym import GymLog
 from models.mock_test import TestRecord
 from models.topic import SyllabusChapter, seed_cbse_syllabus
 from models.settings import DeviceLocation
+from models.rest import RestMessage, LiveDevice
 
 # Import blueprints
 from routes.auth import auth_bp
@@ -26,6 +27,7 @@ from routes.task import task_bp
 from routes.habits import habits_bp
 from routes.gym import gym_bp
 from routes.settings import settings_bp
+from routes.rest import rest_bp
 
 
 def ensure_schema_columns():
@@ -48,7 +50,7 @@ def create_app():
 
     app.config.from_object(Config)
 
-    # Set to False when you want account login & friends active
+    # Set to False when you want Login + Username Search in Rest
     app.config["DISABLE_AUTH"] = True
 
     os.makedirs(app.instance_path, exist_ok=True)
@@ -72,6 +74,7 @@ def create_app():
     app.register_blueprint(habits_bp)
     app.register_blueprint(gym_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(rest_bp)
 
     @app.before_request
     def auto_login_owner():
