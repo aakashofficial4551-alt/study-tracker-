@@ -1,7 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Timer - StudyOS{% endblock %}
+{% block title %}Timer - UR RECORDS{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
     .mode-switch, .tool-switch {
         display: grid;
@@ -10,18 +13,18 @@
         margin-bottom: 12px;
     }
     .mode-btn, .tool-btn {
-        min-height: 42px;
+        min-height: 44px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        background: #121219;
+        background: #111118;
         color: #94a3b8;
-        border-radius: 11px;
+        border-radius: 12px;
         font-weight: 700;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
         cursor: pointer;
     }
-    .mode-btn.active-study { background: linear-gradient(135deg, #ff2e4c 0%, #ff2a85 100%); color: #fff; border-color: transparent; }
+    .mode-btn.active-study { background: linear-gradient(135deg, #ff2442 0%, #ff2e88 100%); color: #fff; border-color: transparent; }
     .mode-btn.active-running { background: linear-gradient(135deg, #10b981 0%, #22c55e 100%); color: #041d11; border-color: transparent; }
-    .tool-btn.active { background: #1e1e2b; color: #f8fafc; border-color: #ff2a85; }
+    .tool-btn.active { background: #191924; color: #f8fafc; border-color: #ff2e88; }
 
     .timer-face { text-align: center; padding: 20px 14px; }
     .timer-digits {
@@ -41,41 +44,101 @@
         padding: 8px 4px;
         border-radius: 9px;
         border: 1px solid rgba(255, 255, 255, 0.1);
-        background: #0b0b10;
+        background: #060609;
         color: #cbd5e1;
         font-weight: 700;
         font-size: 0.82rem;
         cursor: pointer;
     }
-    .preset-btn:hover { border-color: #ff2a85; color: #fff; }
 
     .lap-box {
         margin-top: 12px;
-        max-height: 150px;
+        max-height: 140px;
         overflow-y: auto;
         text-align: left;
-        background: #0b0b10;
+        background: #060609;
         border-radius: 10px;
         padding: 8px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         display: none;
     }
     .lap-item { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
     .lap-item:last-child { border-bottom: none; }
 
-    .gps-strip { display: none; margin-top: 12px; padding: 11px; border-radius: 11px; background: #0b0b10; border: 1px dashed rgba(34, 197, 94, 0.4); text-align: left; }
-    .gps-strip.show { display: block; }
+    /* Live GPS Map Panel */
+    .gps-panel {
+        display: none;
+        margin-bottom: 14px;
+    }
+    .gps-panel.show { display: block; }
+    .gps-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .gps-status {
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+    }
+    .gps-status.live {
+        background: rgba(22, 199, 132, 0.18);
+        color: #34d399;
+        border: 1px solid rgba(22, 199, 132, 0.45);
+    }
+    .gps-status.err {
+        background: rgba(255, 36, 66, 0.16);
+        color: #fda4af;
+        border: 1px solid rgba(255, 36, 66, 0.4);
+    }
+    .gps-stats-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .gps-stat-box {
+        background: #060609;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+    }
+    .gps-stat-box small {
+        display: block;
+        font-size: 0.72rem;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .gps-stat-box strong {
+        font-size: 1.35rem;
+        font-weight: 900;
+        color: #22c55e;
+    }
+    #run-map {
+        width: 100%;
+        height: 270px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #060609;
+        z-index: 1;
+    }
 
     .filter-row { display: flex; gap: 6px; margin-bottom: 12px; }
-    .filter-pill { padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.1); background: #0b0b10; color: #94a3b8; cursor: pointer; }
-    .filter-pill.active { background: #ff2a85; color: #fff; border-color: #ff2a85; }
+    .filter-pill { padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.1); background: #060609; color: #94a3b8; cursor: pointer; }
+    .filter-pill.active { background: #ff2e88; color: #fff; border-color: #ff2e88; }
 
-    .record-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #0b0b10; border: 1px solid rgba(255, 255, 255, 0.07); margin-bottom: 8px; }
+    .record-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #060609; border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 8px; }
     .rec-date { font-size: 0.76rem; color: #94a3b8; font-weight: 600; }
     .rec-main { font-size: 0.95rem; font-weight: 800; margin-top: 2px; color: #f8fafc; }
     .mode-badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
-    .badge-study { background: rgba(255, 42, 133, 0.16); color: #ff7eb3; border: 1px solid rgba(255, 42, 133, 0.35); }
-    .badge-run { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+    .badge-study { background: rgba(255, 46, 136, 0.16); color: #ff7eb3; border: 1px solid rgba(255, 46, 136, 0.35); }
+    .badge-run { background: rgba(22, 199, 132, 0.16); color: #34d399; border: 1px solid rgba(22, 199, 132, 0.38); }
 </style>
 
 <h1 style="margin-bottom: 12px;">Timer</h1>
@@ -90,6 +153,31 @@
     <button type="button" id="tab-countdown" class="tool-btn" onclick="setTool('countdown')">Countdown</button>
 </div>
 
+<!-- LIVE GPS MAP PANEL (SHOWN IN RUNNING MODE) -->
+<div id="gps-panel" class="card gps-panel">
+    <div class="gps-top">
+        <h3>Live Route</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span id="gps-status" class="gps-status">Waiting for GPS</span>
+            <button type="button" class="btn btn-dark btn-sm" onclick="requestLocationPermission()">Locate</button>
+        </div>
+    </div>
+
+    <div class="gps-stats-row">
+        <div class="gps-stat-box">
+            <small>Distance</small>
+            <strong id="gps-distance">0.00 km</strong>
+        </div>
+        <div class="gps-stat-box">
+            <small>Pace</small>
+            <strong id="gps-pace" style="color:#ff2e88;">0:00 /km</strong>
+        </div>
+    </div>
+
+    <div id="run-map"></div>
+</div>
+
+<!-- TIMER CARD -->
 <div class="card timer-face">
     <div id="mode-tag" style="font-size:0.8rem; font-weight:800; color:#ff7eb3; text-transform:uppercase; letter-spacing:0.6px;">
         Study Mode • Stopwatch
@@ -130,30 +218,19 @@
         </div>
     </div>
 
-    <!-- SAVE BUTTON -->
     <form method="POST" action="{{ url_for('study.save') }}" id="live-save-form" onsubmit="prepareSave()" style="margin-top:10px;">
         <input type="hidden" name="mode" id="live-mode-input" value="study">
         <input type="hidden" name="duration" id="live-duration-input" value="0">
+        <input type="hidden" name="distance_km" id="live-distance-input" value="0">
         <button type="submit" class="btn" style="width:100%;">Save</button>
     </form>
-
-    <!-- GPS STANDBY -->
-    <div id="gps-strip" class="gps-strip">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:0.84rem; color:#34d399;">GPS Distance</strong>
-            <span style="font-size:0.72rem; color:#94a3b8;">Standby</span>
-        </div>
-        <p style="font-size:0.76rem; color:#94a3b8; margin-top:4px;">
-            Live location distance tracking is disabled for now.
-        </p>
-    </div>
 </div>
 
 <!-- TOTALS -->
 <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
     <div class="card" style="margin-bottom:0; padding:12px;">
         <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TOTAL STUDY</div>
-        <div style="font-size:1.2rem; font-weight:800; color:#ff2a85; margin-top:2px;">{{ study_total_text }}</div>
+        <div style="font-size:1.2rem; font-weight:800; color:#ff2e88; margin-top:2px;">{{ study_total_text }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:12px;">
         <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TOTAL RUNNING</div>
@@ -181,7 +258,7 @@
                 <div>
                     <div class="rec-date">{{ r.date }}</div>
                     <div class="rec-main">
-                        {{ r.duration_text }}
+                        {{ r.duration_text }}{% if r.distance_text %} • {{ r.distance_text }}{% endif %}
                         <span class="mode-badge {{ 'badge-run' if r.is_running else 'badge-study' }}">
                             {{ r.mode }}
                         </span>
@@ -202,14 +279,168 @@
     let currentMode = 'study';
     let currentTool = 'stopwatch';
 
+    // Stopwatch
     let swTenths = 0;
     let swInterval = null;
     let laps = [];
 
+    // Countdown
     let cdTotalSecs = 25 * 60;
     let cdRemainingSecs = 25 * 60;
     let cdElapsedSecs = 0;
     let cdInterval = null;
+
+    // Live GPS & Strava-style Map State
+    let map = null;
+    let routeLine = null;
+    let userMarker = null;
+    let watchId = null;
+    let routeCoords = [];
+    let totalDistanceKm = 0;
+    let lastPoint = null;
+
+    function initMap() {
+        if (map) {
+            setTimeout(() => map.invalidateSize(), 150);
+            return;
+        }
+        map = L.map('run-map', { zoomControl: true }).setView([20.5937, 78.9629], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        routeLine = L.polyline([], {
+            color: '#ff2442',
+            weight: 5,
+            opacity: 0.95,
+            lineJoin: 'round'
+        }).addTo(map);
+    }
+
+    function setGpsStatus(text, type) {
+        const el = document.getElementById('gps-status');
+        el.textContent = text;
+        el.className = 'gps-status' + (type ? ' ' + type : '');
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function updateGpsDisplay() {
+        document.getElementById('gps-distance').textContent = totalDistanceKm.toFixed(2) + ' km';
+        document.getElementById('live-distance-input').value = totalDistanceKm.toFixed(3);
+
+        const elapsedSecs = currentTool === 'stopwatch' ? Math.floor(swTenths / 10) : cdElapsedSecs;
+        if (totalDistanceKm >= 0.02 && elapsedSecs > 0) {
+            const paceSecsPerKm = elapsedSecs / totalDistanceKm;
+            const pMin = Math.floor(paceSecsPerKm / 60);
+            const pSec = String(Math.floor(paceSecsPerKm % 60)).padStart(2, '0');
+            document.getElementById('gps-pace').textContent = `${pMin}:${pSec} /km`;
+        } else {
+            document.getElementById('gps-pace').textContent = '0:00 /km';
+        }
+    }
+
+    function placeMarker(lat, lng) {
+        if (!map) return;
+        if (!userMarker) {
+            userMarker = L.circleMarker([lat, lng], {
+                radius: 8,
+                fillColor: '#22c55e',
+                color: '#ffffff',
+                weight: 2.5,
+                fillOpacity: 1
+            }).addTo(map);
+        } else {
+            userMarker.setLatLng([lat, lng]);
+        }
+        map.setView([lat, lng], Math.max(map.getZoom(), 16), { animate: true });
+    }
+
+    function requestLocationPermission() {
+        if (!('geolocation' in navigator)) {
+            setGpsStatus('GPS Unavailable', 'err');
+            return;
+        }
+        setGpsStatus('Requesting GPS...', '');
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                initMap();
+                placeMarker(latitude, longitude);
+                setGpsStatus('GPS Ready', 'live');
+            },
+            (err) => {
+                setGpsStatus(err.code === 1 ? 'Permission Denied' : 'GPS Error', 'err');
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+
+    function startGpsTracking() {
+        if (currentMode !== 'running' || !('geolocation' in navigator)) return;
+        if (watchId !== null) return;
+
+        initMap();
+        setGpsStatus('Tracking Live', 'live');
+
+        watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude, accuracy } = pos.coords;
+                // Ignore very weak GPS signals
+                if (accuracy && accuracy > 60) return;
+
+                placeMarker(latitude, longitude);
+
+                if (lastPoint) {
+                    const stepKm = haversineKm(lastPoint[0], lastPoint[1], latitude, longitude);
+                    // Ignore tiny GPS drift under 3 meters
+                    if (stepKm >= 0.003) {
+                        totalDistanceKm += stepKm;
+                        routeCoords.push([latitude, longitude]);
+                        routeLine.setLatLngs(routeCoords);
+                        lastPoint = [latitude, longitude];
+                        updateGpsDisplay();
+                    }
+                } else {
+                    lastPoint = [latitude, longitude];
+                    routeCoords.push([latitude, longitude]);
+                    routeLine.setLatLngs(routeCoords);
+                }
+            },
+            (err) => {
+                setGpsStatus(err.code === 1 ? 'Permission Denied' : 'Signal Weak', 'err');
+            },
+            { enableHighAccuracy: true, maximumAge: 1000, timeout: 12000 }
+        );
+    }
+
+    function stopGpsTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            if (currentMode === 'running') setGpsStatus('Paused', '');
+        }
+    }
+
+    function resetGpsRoute() {
+        stopGpsTracking();
+        routeCoords = [];
+        totalDistanceKm = 0;
+        lastPoint = null;
+        if (routeLine) routeLine.setLatLngs([]);
+        updateGpsDisplay();
+        if (currentMode === 'running') setGpsStatus('GPS Ready', 'live');
+    }
 
     function updateHeaderTag() {
         const tag = document.getElementById('mode-tag');
@@ -226,9 +457,15 @@
         document.getElementById('btn-study').className = 'mode-btn' + (mode === 'study' ? ' active-study' : '');
         document.getElementById('btn-running').className = 'mode-btn' + (mode === 'running' ? ' active-running' : '');
 
-        const gps = document.getElementById('gps-strip');
-        if (mode === 'running') gps.classList.add('show');
-        else gps.classList.remove('show');
+        const gpsPanel = document.getElementById('gps-panel');
+        if (mode === 'running') {
+            gpsPanel.classList.add('show');
+            initMap();
+            requestLocationPermission();
+        } else {
+            gpsPanel.classList.remove('show');
+            stopGpsTracking();
+        }
 
         updateHeaderTag();
     }
@@ -242,6 +479,7 @@
         updateHeaderTag();
     }
 
+    // STOPWATCH
     function formatSw(tenths) {
         const totalSecs = Math.floor(tenths / 10);
         const t = tenths % 10;
@@ -253,15 +491,18 @@
 
     function swStart() {
         if (swInterval) return;
+        startGpsTracking();
         swInterval = setInterval(() => {
             swTenths++;
             document.getElementById('sw-display').innerHTML = formatSw(swTenths);
+            if (currentMode === 'running' && swTenths % 10 === 0) updateGpsDisplay();
         }, 100);
     }
 
     function swPause() {
         clearInterval(swInterval);
         swInterval = null;
+        stopGpsTracking();
     }
 
     function swLap() {
@@ -282,8 +523,10 @@
         const box = document.getElementById('lap-box');
         box.innerHTML = '';
         box.style.display = 'none';
+        resetGpsRoute();
     }
 
+    // COUNTDOWN
     function renderCd() {
         const hrs = Math.floor(cdRemainingSecs / 3600);
         const mins = String(Math.floor((cdRemainingSecs % 3600) / 60)).padStart(2, '0');
@@ -320,15 +563,17 @@
 
     function cdStart() {
         if (cdInterval || cdRemainingSecs <= 0) return;
+        startGpsTracking();
         cdInterval = setInterval(() => {
             if (cdRemainingSecs > 0) {
                 cdRemainingSecs--;
                 cdElapsedSecs++;
                 renderCd();
+                if (currentMode === 'running') updateGpsDisplay();
             } else {
                 cdPause();
                 playBeep();
-                alert('Time complete. Click Save to log this record.');
+                alert('Time complete.');
             }
         }, 1000);
     }
@@ -336,6 +581,7 @@
     function cdPause() {
         clearInterval(cdInterval);
         cdInterval = null;
+        stopGpsTracking();
     }
 
     function cdReset() {
@@ -343,11 +589,13 @@
         cdRemainingSecs = cdTotalSecs;
         cdElapsedSecs = 0;
         renderCd();
+        resetGpsRoute();
     }
 
     function prepareSave() {
         const secs = currentTool === 'stopwatch' ? Math.floor(swTenths / 10) : cdElapsedSecs;
         document.getElementById('live-duration-input').value = secs;
+        document.getElementById('live-distance-input').value = currentMode === 'running' ? totalDistanceKm.toFixed(3) : '0';
     }
 
     function filterRecords(cat, btn) {
