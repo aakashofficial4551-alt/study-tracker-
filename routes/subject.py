@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 
 from extensions import db
 from models import Subject
-from models.syllabus import SyllabusChapter
+from models.topic import SyllabusChapter, THEORY_MARKS_MAP, seed_cbse_syllabus
 from models.mock_test import TestRecord
 
 subject_bp = Blueprint(
@@ -12,104 +12,6 @@ subject_bp = Blueprint(
     __name__,
     url_prefix="/subjects"
 )
-
-CBSE_SYLLABUS = [
-    {
-        "subject": "Physics",
-        "theory_marks": 70,
-        "color": "#ff2442",
-        "chapters": [
-            "Electric Charges and Fields",
-            "Electrostatic Potential and Capacitance",
-            "Current Electricity",
-            "Moving Charges and Magnetism",
-            "Magnetism and Matter",
-            "Electromagnetic Induction",
-            "Alternating Current",
-            "Electromagnetic Waves",
-            "Ray Optics and Optical Instruments",
-            "Wave Optics",
-            "Dual Nature of Radiation and Matter",
-            "Atoms",
-            "Nuclei",
-            "Semiconductor Electronics: Materials, Devices and Simple Circuits",
-        ],
-    },
-    {
-        "subject": "Chemistry",
-        "theory_marks": 70,
-        "color": "#ff2e88",
-        "chapters": [
-            "Solutions",
-            "Electrochemistry",
-            "Chemical Kinetics",
-            "d- and f-Block Elements",
-            "Coordination Compounds",
-            "Haloalkanes and Haloarenes",
-            "Alcohols, Phenols and Ethers",
-            "Aldehydes, Ketones and Carboxylic Acids",
-            "Amines",
-            "Biomolecules",
-        ],
-    },
-    {
-        "subject": "Mathematics",
-        "theory_marks": 80,
-        "color": "#16c784",
-        "chapters": [
-            "Relations and Functions",
-            "Inverse Trigonometric Functions",
-            "Matrices",
-            "Determinants",
-            "Continuity and Differentiability",
-            "Applications of Derivatives",
-            "Integrals",
-            "Applications of Integrals",
-            "Differential Equations",
-            "Vector Algebra",
-            "Three Dimensional Geometry",
-            "Linear Programming",
-            "Probability",
-        ],
-    },
-]
-
-
-def seed_cbse_syllabus():
-    """Ensures Physics, Chemistry, and Mathematics CBSE chapters exist."""
-    changed = False
-    for item in CBSE_SYLLABUS:
-        subj_name = item["subject"]
-        chapters = item["chapters"]
-
-        existing_subj = Subject.query.filter_by(name=subj_name).first()
-        if not existing_subj:
-            db.session.add(
-                Subject(
-                    name=subj_name,
-                    icon="",
-                    color=item["color"],
-                    total_chapters=len(chapters),
-                )
-            )
-            changed = True
-
-        existing_count = SyllabusChapter.query.filter_by(subject_name=subj_name).count()
-        if existing_count == 0:
-            for idx, title in enumerate(chapters, start=1):
-                db.session.add(
-                    SyllabusChapter(
-                        subject_name=subj_name,
-                        theory_marks=item["theory_marks"],
-                        chapter_number=idx,
-                        title=title,
-                        completed=False,
-                    )
-                )
-            changed = True
-
-    if changed:
-        db.session.commit()
 
 
 def get_ist_now():
@@ -120,30 +22,34 @@ def get_ist_now():
 @login_required
 def subjects():
     seed_cbse_syllabus()
-
     now_ist = get_ist_now()
-    all_subjects = Subject.query.order_by(Subject.name).all()
+
+    all_subjects = Subject.query.order_by(Subject.id.asc()).all()
     all_chapters = SyllabusChapter.query.order_by(
-        SyllabusChapter.subject_name, SyllabusChapter.chapter_number
+        SyllabusChapter.subject_name.asc(),
+        SyllabusChapter.chapter_number.asc()
     ).all()
 
-    syllabus_groups = []
-    for item in CBSE_SYLLABUS:
-        sname = item["subject"]
-        ch_list = [c for c in all_chapters if c.subject_name == sname]
-        done = sum(1 for c in ch_list if c.completed)
-        total = len(ch_list)
-        pct = round((done / total) * 100) if total > 0 else 0
-        syllabus_groups.append({
-            "name": sname,
-            "theory_marks": item["theory_marks"],
-            "color": item["color"],
+    chapters_by_subject = {}
+    for ch in all_chapters:
+        chapters_by_subject.setdefault(ch.subject_name, []).append(ch)
+
+    syllabus_blocks = []
+    for s in all_subjects:
+        ch_list = chapters_by_subject.get(s.name, [])
+        done_count = sum(1 for c in ch_list if c.completed)
+        total_count = len(ch_list)
+        pct = round((done_count / total_count) * 100) if total_count > 0 else 0
+        syllabus_blocks.append({
+            "subject": s,
+            "theory_marks": THEORY_MARKS_MAP.get(s.name),
             "chapters": ch_list,
-            "completed": done,
-            "total": total,
-            "percent": pct,
+            "done": done_count,
+            "total": total_count,
+            "pct": pct,
         })
 
+    total_subjects = len(all_subjects)
     total_chapters = len(all_chapters)
     completed_chapters = sum(1 for c in all_chapters if c.completed)
     pending_chapters = total_chapters - completed_chapters
@@ -167,8 +73,8 @@ def subjects():
     return render_template(
         "subjects/index.html",
         subjects=all_subjects,
-        syllabus_groups=syllabus_groups,
-        total_subjects=len(all_subjects),
+        syllabus_blocks=syllabus_blocks,
+        total_subjects=total_subjects,
         total_chapters=total_chapters,
         completed_chapters=completed_chapters,
         pending_chapters=pending_chapters,
@@ -183,30 +89,29 @@ def subjects():
 @subject_bp.route("/chapter/toggle/<int:id>", methods=["POST"])
 @login_required
 def toggle_chapter(id):
-    chapter = SyllabusChapter.query.get_or_404(id)
-    chapter.completed = not chapter.completed
+    ch = SyllabusChapter.query.get_or_404(id)
+    ch.completed = not ch.completed
     db.session.commit()
 
-    subj_chapters = SyllabusChapter.query.filter_by(
-        subject_name=chapter.subject_name
-    ).all()
+    subj_chapters = SyllabusChapter.query.filter_by(subject_name=ch.subject_name).all()
     subj_done = sum(1 for c in subj_chapters if c.completed)
     subj_total = len(subj_chapters)
     subj_pct = round((subj_done / subj_total) * 100) if subj_total > 0 else 0
 
-    all_total = SyllabusChapter.query.count()
-    all_done = SyllabusChapter.query.filter_by(completed=True).count()
-    overall_pct = round((all_done / all_total) * 100) if all_total > 0 else 0
+    total_all = SyllabusChapter.query.count()
+    done_all = SyllabusChapter.query.filter_by(completed=True).count()
+    overall_pct = round((done_all / total_all) * 100) if total_all > 0 else 0
 
     return jsonify({
-        "completed": chapter.completed,
-        "subject_name": chapter.subject_name,
-        "subject_done": subj_done,
-        "subject_total": subj_total,
-        "subject_pct": subj_pct,
-        "all_done": all_done,
-        "all_total": all_total,
-        "pending": all_total - all_done,
+        "ok": True,
+        "completed": ch.completed,
+        "subject_name": ch.subject_name,
+        "subj_done": subj_done,
+        "subj_total": subj_total,
+        "subj_pct": subj_pct,
+        "done_all": done_all,
+        "total_all": total_all,
+        "pending_all": total_all - done_all,
         "overall_pct": overall_pct,
     })
 
@@ -237,6 +142,7 @@ def add_subject():
 @login_required
 def delete_subject(id):
     subject = Subject.query.get_or_404(id)
+    SyllabusChapter.query.filter_by(subject_name=subject.name).delete()
     db.session.delete(subject)
     db.session.commit()
     flash("Subject deleted.", "info")
