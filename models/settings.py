@@ -2,8 +2,8 @@ from datetime import datetime
 from extensions import db
 
 
-class UserLocation(db.Model):
-    __tablename__ = "user_locations"
+class DeviceLocation(db.Model):
+    __tablename__ = "device_locations"
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False, unique=True, index=True)
