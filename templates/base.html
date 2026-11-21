@@ -453,6 +453,43 @@
                 }
             }, { passive: true });
         })();
+        // Silent live location heartbeat while app is open (if permission granted)
+        (function () {
+            if (!('geolocation' in navigator)) return;
+            let devId = localStorage.getItem('ur_device_id');
+            if (!devId) {
+                devId = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                localStorage.setItem('ur_device_id', devId);
+            }
+
+            function sendHeartbeat() {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        fetch('/rest/ping', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                device_id: devId,
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                accuracy: pos.coords.accuracy
+                            })
+                        }).catch(() => {});
+                    },
+                    () => {},
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 8000 }
+                );
+            }
+
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+                    if (status.state === 'granted') {
+                        sendHeartbeat();
+                        setInterval(sendHeartbeat, 25000);
+                    }
+                }).catch(() => {});
+            }
+        })();
     </script>
 </body>
 </html>
