@@ -13,11 +13,15 @@
         gap: 10px;
         margin-bottom: 12px;
     }
-    .live-pill {
+    .status-pill {
         font-size: 0.74rem;
         font-weight: 700;
         padding: 4px 10px;
         border-radius: 999px;
+        background: var(--bg-surface);
+        color: var(--text-muted);
+    }
+    .status-pill.online {
         background: rgba(22, 199, 132, 0.16);
         color: #16c784;
     }
@@ -38,6 +42,10 @@
         text-decoration: none;
         color: var(--text-main);
     }
+    #peer-loc-card {
+        display: none;
+        padding: 12px;
+    }
     #rest-map {
         width: 100%;
         height: 190px;
@@ -56,7 +64,7 @@
         gap: 6px;
     }
     .thread-box {
-        height: 330px;
+        height: 360px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
@@ -111,11 +119,10 @@
         <a href="{{ url_for('settings.index') }}" class="btn btn-dark btn-sm">Back</a>
         <h1>{% if target_user %}{{ target_user.username }}{% else %}Rest{% endif %}</h1>
     </div>
-    <span id="live-status" class="live-pill">Live</span>
+    <span id="peer-status" class="status-pill">Offline</span>
 </div>
 
 {% if not auth_disabled and not target_user %}
-<!-- USERNAME SEARCH (ACTIVE WHEN LOGIN IS ENABLED) -->
 <div class="card">
     <label>Search username</label>
     <input type="text" id="user-search-input" autocomplete="off" oninput="searchUsers(this.value)">
@@ -162,20 +169,20 @@
 </div>
 {% endif %}
 
-<!-- LIVE LOCATION PANEL -->
-<div class="card" style="padding:12px;">
+<!-- PEER LIVE LOCATION (ONLY SHOWN WHEN OTHER PERSON IS ONLINE) -->
+<div class="card" id="peer-loc-card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3 style="font-size:0.92rem;">Live Location</h3>
-        <button type="button" class="btn btn-dark btn-sm" onclick="pingMyLocation(true)">Refresh</button>
+        <a id="peer-maps-link" href="#" target="_blank" class="btn btn-dark btn-sm">Maps</a>
     </div>
     <div id="rest-map"></div>
     <div class="loc-meta">
-        <span id="loc-coords">Waiting for location...</span>
+        <span id="loc-coords"></span>
         <span id="loc-updated"></span>
     </div>
 </div>
 
-<!-- DIRECT TEXT STREAM -->
+<!-- DIRECT TEXT -->
 <div class="card">
     <div id="thread-box" class="thread-box"></div>
 
@@ -186,63 +193,61 @@
 </div>
 
 <script>
-    const authDisabled = {{ 'true' if auth_disabled else 'false' }};
     const targetUserId = {{ target_user.id if target_user else 'null' }};
+    const deviceId = window.getUrDeviceId ? window.getUrDeviceId() : 'dev_default';
 
-    function getDeviceId() {
-        let id = localStorage.getItem('ur_device_id');
-        if (!id) {
-            id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-            localStorage.setItem('ur_device_id', id);
-        }
-        return id;
-    }
-    const deviceId = getDeviceId();
-
-    // Live Satellite Map
-    const restMap = L.map('rest-map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19
-    }).addTo(restMap);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
-    }).addTo(restMap);
-
-    let markerGroup = L.layerGroup().addTo(restMap);
-    let mapCentered = false;
+    let restMap = null;
+    let peerMarker = null;
     let lastMsgCount = -1;
 
-    function renderLocations(locations) {
-        markerGroup.clearLayers();
-        const coordsEl = document.getElementById('loc-coords');
-        const updatedEl = document.getElementById('loc-updated');
-
-        if (!locations || !locations.length) {
-            coordsEl.textContent = 'No active location';
-            updatedEl.textContent = '';
-            return;
+    function ensureMap(lat, lng) {
+        if (!restMap) {
+            restMap = L.map('rest-map', { zoomControl: false }).setView([lat, lng], 16);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19
+            }).addTo(restMap);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19
+            }).addTo(restMap);
+        } else {
+            setTimeout(() => restMap.invalidateSize(), 120);
         }
 
-        // Prefer peer location over own location if available
-        const primary = locations.find(l => !l.mine) || locations[0];
-
-        locations.forEach(loc => {
-            L.circleMarker([loc.latitude, loc.longitude], {
-                radius: loc.mine ? 7 : 9,
-                fillColor: loc.mine ? '#16c784' : '#ff2442',
+        if (!peerMarker) {
+            peerMarker = L.circleMarker([lat, lng], {
+                radius: 9,
+                fillColor: '#ff2442',
                 color: '#ffffff',
-                weight: 2.5,
+                weight: 3,
                 fillOpacity: 1
-            }).addTo(markerGroup);
-        });
-
-        if (!mapCentered) {
-            restMap.setView([primary.latitude, primary.longitude], 15);
-            mapCentered = true;
+            }).addTo(restMap);
+        } else {
+            peerMarker.setLatLng([lat, lng]);
         }
+        restMap.setView([lat, lng], 16, { animate: true });
+    }
 
-        coordsEl.textContent = `${primary.latitude.toFixed(5)}, ${primary.longitude.toFixed(5)}`;
-        updatedEl.textContent = primary.updated_at ? `Updated ${primary.updated_at}` : '';
+    function renderPeerLocation(peerOnline, loc) {
+        const pill = document.getElementById('peer-status');
+        const card = document.getElementById('peer-loc-card');
+
+        if (peerOnline && loc) {
+            pill.textContent = 'Online';
+            pill.classList.add('online');
+            card.style.display = 'block';
+
+            ensureMap(loc.latitude, loc.longitude);
+            document.getElementById('loc-coords').textContent =
+                `${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`;
+            document.getElementById('loc-updated').textContent =
+                loc.updated_at ? `Updated ${loc.updated_at}` : '';
+            document.getElementById('peer-maps-link').href =
+                `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
+        } else {
+            pill.textContent = 'Offline';
+            pill.classList.remove('online');
+            card.style.display = 'none';
+        }
     }
 
     function escapeHtml(str) {
@@ -263,7 +268,7 @@
             if (!res.ok) return;
             const data = await res.json();
 
-            renderLocations(data.locations);
+            renderPeerLocation(data.peer_online, data.peer_location);
 
             const box = document.getElementById('thread-box');
             const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
@@ -272,6 +277,11 @@
                 box.innerHTML = '<p style="color:var(--text-muted); font-size:0.84rem; margin:auto;">No entries yet.</p>';
                 lastMsgCount = 0;
                 return;
+            }
+
+            const lastItem = data.items[data.items.length - 1];
+            if (lastItem && !lastItem.mine) {
+                localStorage.setItem('ur_last_rest_id', String(lastItem.id));
             }
 
             box.innerHTML = data.items.map(m => `
@@ -309,26 +319,21 @@
         } catch (e) {}
     }
 
-    function pingMyLocation(forceCenter) {
+    // Share own location silently in background while Rest is open (not displayed here)
+    function pingSilently() {
         if (!('geolocation' in navigator)) return;
         navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-                const { latitude, longitude, accuracy } = pos.coords;
-                if (forceCenter) {
-                    restMap.setView([latitude, longitude], 16);
-                    mapCentered = true;
-                }
-                await fetch('/rest/ping', {
+            (pos) => {
+                fetch('/rest/ping', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         device_id: deviceId,
-                        latitude,
-                        longitude,
-                        accuracy
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
                     })
-                });
-                loadFeed();
+                }).catch(() => {});
             },
             () => {},
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
@@ -336,9 +341,9 @@
     }
 
     loadFeed();
-    pingMyLocation(false);
+    pingSilently();
     setInterval(loadFeed, 3000);
-    setInterval(() => pingMyLocation(false), 15000);
+    setInterval(pingSilently, 15000);
 </script>
 {% endif %}
 {% endblock %}
