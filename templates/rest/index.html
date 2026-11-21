@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Rest - UR RECORDS{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    .rest-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .live-pill {
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(22, 199, 132, 0.16);
+        color: #16c784;
+    }
+    .search-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .user-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        text-decoration: none;
+        color: var(--text-main);
+    }
+    #rest-map {
+        width: 100%;
+        height: 190px;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        margin-top: 8px;
+        z-index: 1;
+    }
+    .loc-meta {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .thread-box {
+        height: 330px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        margin-bottom: 10px;
+    }
+    .bubble {
+        max-width: 80%;
+        padding: 10px 13px;
+        border-radius: 14px;
+        font-size: 0.92rem;
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+    .bubble.mine {
+        align-self: flex-end;
+        background: var(--grad-primary);
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+    }
+    .bubble.theirs {
+        align-self: flex-start;
+        background: var(--bg-surface);
+        color: var(--text-main);
+        border: 1px solid var(--border-subtle);
+        border-bottom-left-radius: 4px;
+    }
+    .bubble-time {
+        display: block;
+        font-size: 0.68rem;
+        opacity: 0.75;
+        margin-top: 4px;
+        text-align: right;
+    }
+    .compose-bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .compose-bar input {
+        margin: 0;
+        flex: 1;
+    }
+</style>
+
+<div class="rest-head">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <a href="{{ url_for('settings.index') }}" class="btn btn-dark btn-sm">Back</a>
+        <h1>{% if target_user %}{{ target_user.username }}{% else %}Rest{% endif %}</h1>
+    </div>
+    <span id="live-status" class="live-pill">Live</span>
+</div>
+
+{% if not auth_disabled and not target_user %}
+<!-- USERNAME SEARCH (ACTIVE WHEN LOGIN IS ENABLED) -->
+<div class="card">
+    <label>Search username</label>
+    <input type="text" id="user-search-input" autocomplete="off" oninput="searchUsers(this.value)">
+    <div id="search-results" class="search-list"></div>
+</div>
+
+<script>
+    let searchTimer = null;
+
+    function searchUsers(val) {
+        clearTimeout(searchTimer);
+        const box = document.getElementById('search-results');
+        const q = val.trim();
+        if (!q) {
+            box.innerHTML = '';
+            return;
+        }
+        searchTimer = setTimeout(async () => {
+            const res = await fetch(`/rest/search?q=${encodeURIComponent(q)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.users.length) {
+                box.innerHTML = '<p style="font-size:0.84rem; color:var(--text-muted);">No users found.</p>';
+                return;
+            }
+            box.innerHTML = data.users.map(u => `
+                <a class="user-row" href="/rest/?u=${u.id}">
+                    <div>
+                        <strong>${u.username}</strong>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">${u.full_name}</div>
+                    </div>
+                    <span class="btn btn-sm">Open</span>
+                </a>
+            `).join('');
+        }, 220);
+    }
+</script>
+
+{% else %}
+
+{% if not auth_disabled and target_user %}
+<div style="margin-bottom:10px;">
+    <a href="{{ url_for('rest.index') }}" class="btn btn-dark btn-sm">Change User</a>
+</div>
+{% endif %}
+
+<!-- LIVE LOCATION PANEL -->
+<div class="card" style="padding:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:0.92rem;">Live Location</h3>
+        <button type="button" class="btn btn-dark btn-sm" onclick="pingMyLocation(true)">Refresh</button>
+    </div>
+    <div id="rest-map"></div>
+    <div class="loc-meta">
+        <span id="loc-coords">Waiting for location...</span>
+        <span id="loc-updated"></span>
+    </div>
+</div>
+
+<!-- DIRECT TEXT STREAM -->
+<div class="card">
+    <div id="thread-box" class="thread-box"></div>
+
+    <form id="send-form" class="compose-bar" onsubmit="sendText(event)">
+        <input type="text" id="text-input" autocomplete="off" maxlength="2000" required>
+        <button type="submit" class="btn">Send</button>
+    </form>
+</div>
+
+<script>
+    const authDisabled = {{ 'true' if auth_disabled else 'false' }};
+    const targetUserId = {{ target_user.id if target_user else 'null' }};
+
+    function getDeviceId() {
+        let id = localStorage.getItem('ur_device_id');
+        if (!id) {
+            id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem('ur_device_id', id);
+        }
+        return id;
+    }
+    const deviceId = getDeviceId();
+
+    // Live Satellite Map
+    const restMap = L.map('rest-map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19
+    }).addTo(restMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+    }).addTo(restMap);
+
+    let markerGroup = L.layerGroup().addTo(restMap);
+    let mapCentered = false;
+    let lastMsgCount = -1;
+
+    function renderLocations(locations) {
+        markerGroup.clearLayers();
+        const coordsEl = document.getElementById('loc-coords');
+        const updatedEl = document.getElementById('loc-updated');
+
+        if (!locations || !locations.length) {
+            coordsEl.textContent = 'No active location';
+            updatedEl.textContent = '';
+            return;
+        }
+
+        // Prefer peer location over own location if available
+        const primary = locations.find(l => !l.mine) || locations[0];
+
+        locations.forEach(loc => {
+            L.circleMarker([loc.latitude, loc.longitude], {
+                radius: loc.mine ? 7 : 9,
+                fillColor: loc.mine ? '#16c784' : '#ff2442',
+                color: '#ffffff',
+                weight: 2.5,
+                fillOpacity: 1
+            }).addTo(markerGroup);
+        });
+
+        if (!mapCentered) {
+            restMap.setView([primary.latitude, primary.longitude], 15);
+            mapCentered = true;
+        }
+
+        coordsEl.textContent = `${primary.latitude.toFixed(5)}, ${primary.longitude.toFixed(5)}`;
+        updatedEl.textContent = primary.updated_at ? `Updated ${primary.updated_at}` : '';
+    }
+
+    function escapeHtml(str) {
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    async function loadFeed() {
+        const params = new URLSearchParams();
+        params.set('device_id', deviceId);
+        if (targetUserId) params.set('u', targetUserId);
+
+        try {
+            const res = await fetch('/rest/feed?' + params.toString());
+            if (!res.ok) return;
+            const data = await res.json();
+
+            renderLocations(data.locations);
+
+            const box = document.getElementById('thread-box');
+            const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+
+            if (!data.items.length) {
+                box.innerHTML = '<p style="color:var(--text-muted); font-size:0.84rem; margin:auto;">No entries yet.</p>';
+                lastMsgCount = 0;
+                return;
+            }
+
+            box.innerHTML = data.items.map(m => `
+                <div class="bubble ${m.mine ? 'mine' : 'theirs'}">
+                    <div>${escapeHtml(m.body)}</div>
+                    <span class="bubble-time">${m.time}</span>
+                </div>
+            `).join('');
+
+            if (data.items.length !== lastMsgCount || atBottom) {
+                box.scrollTop = box.scrollHeight;
+                lastMsgCount = data.items.length;
+            }
+        } catch (e) {}
+    }
+
+    async function sendText(e) {
+        e.preventDefault();
+        const input = document.getElementById('text-input');
+        const body = input.value.trim();
+        if (!body) return;
+
+        input.value = '';
+        try {
+            await fetch('/rest/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    body: body,
+                    device_id: deviceId,
+                    receiver_id: targetUserId
+                })
+            });
+            loadFeed();
+        } catch (e) {}
+    }
+
+    function pingMyLocation(forceCenter) {
+        if (!('geolocation' in navigator)) return;
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const { latitude, longitude, accuracy } = pos.coords;
+                if (forceCenter) {
+                    restMap.setView([latitude, longitude], 16);
+                    mapCentered = true;
+                }
+                await fetch('/rest/ping', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: deviceId,
+                        latitude,
+                        longitude,
+                        accuracy
+                    })
+                });
+                loadFeed();
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+        );
+    }
+
+    loadFeed();
+    pingMyLocation(false);
+    setInterval(loadFeed, 3000);
+    setInterval(() => pingMyLocation(false), 15000);
+</script>
+{% endif %}
+{% endblock %}
