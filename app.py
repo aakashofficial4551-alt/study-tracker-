@@ -20,10 +20,10 @@ from routes.subject import subject_bp
 from routes.chapter import chapter_bp
 from routes.study import study_bp
 from routes.analytics import analytics_bp
-from routes.settings import settings_bp
 from routes.task import task_bp
 from routes.habits import habits_bp
 from routes.gym import gym_bp
+# from routes.settings import settings_bp  # Disabled because it hijacked "/"
 
 
 def ensure_schema_columns():
@@ -58,6 +58,11 @@ def create_app():
     login_manager.init_app(app)
     migrate.init_app(app, db)
 
+    # Home route registered FIRST so no blueprint can override "/"
+    @app.route("/")
+    def home():
+        return redirect(url_for("dashboard.dashboard"))
+
     # Register Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -65,7 +70,6 @@ def create_app():
     app.register_blueprint(chapter_bp)
     app.register_blueprint(study_bp)
     app.register_blueprint(analytics_bp)
-    app.register_blueprint(settings_bp)
     app.register_blueprint(task_bp)
     app.register_blueprint(habits_bp)
     app.register_blueprint(gym_bp)
@@ -74,7 +78,7 @@ def create_app():
     def auto_login_owner():
         if not app.config.get("DISABLE_AUTH"):
             return
-        if request.endpoint in ("static", "manifest", "service_worker"):
+        if request.endpoint in ("static", "manifest", "service_worker", "favicon"):
             return
         if not current_user.is_authenticated:
             user = User.query.first()
@@ -100,11 +104,6 @@ def create_app():
 app = create_app()
 
 
-@app.route("/")
-def home():
-    return redirect(url_for("dashboard.dashboard"))
-
-
 @app.route("/manifest.json")
 def manifest():
     return send_from_directory(
@@ -124,6 +123,15 @@ def service_worker():
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Service-Worker-Allowed"] = "/"
     return response
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.static_folder, "icons"),
+        "icon-192.png",
+        mimetype="image/png",
+    )
 
 
 if __name__ == "__main__":
