@@ -14,9 +14,9 @@
     }
     .mode-btn, .tool-btn {
         min-height: 44px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: #111118;
-        color: #94a3b8;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-muted);
         border-radius: 12px;
         font-weight: 700;
         font-size: 0.9rem;
@@ -24,7 +24,7 @@
     }
     .mode-btn.active-study { background: linear-gradient(135deg, #ff2442 0%, #ff2e88 100%); color: #fff; border-color: transparent; }
     .mode-btn.active-running { background: linear-gradient(135deg, #10b981 0%, #22c55e 100%); color: #041d11; border-color: transparent; }
-    .tool-btn.active { background: #191924; color: #f8fafc; border-color: #ff2e88; }
+    .tool-btn.active { background: var(--bg-surface); color: var(--text-main); border-color: #ff2e88; }
 
     .timer-face { text-align: center; padding: 20px 14px; }
     .timer-digits {
@@ -34,18 +34,17 @@
         margin: 10px 0 16px 0;
         font-variant-numeric: tabular-nums;
     }
-    .timer-digits small { font-size: 1.2rem; color: #94a3b8; }
+    .timer-digits small { font-size: 1.2rem; color: var(--text-muted); }
 
     .btn-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 10px; }
     .btn-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
-
     .preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
     .preset-btn {
         padding: 8px 4px;
         border-radius: 9px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: #060609;
-        color: #cbd5e1;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-black);
+        color: var(--text-muted);
         font-weight: 700;
         font-size: 0.82rem;
         cursor: pointer;
@@ -56,89 +55,100 @@
         max-height: 140px;
         overflow-y: auto;
         text-align: left;
-        background: #060609;
+        background: var(--bg-black);
         border-radius: 10px;
         padding: 8px 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border-subtle);
         display: none;
     }
-    .lap-item { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+    .lap-item { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid var(--border-subtle); }
     .lap-item:last-child { border-bottom: none; }
 
-    /* Live GPS Map Panel */
-    .gps-panel {
-        display: none;
-        margin-bottom: 14px;
-    }
+    /* Strava-style Satellite Map Card */
+    .gps-panel { display: none; margin-bottom: 14px; padding: 12px; }
     .gps-panel.show { display: block; }
-    .gps-top {
+    .map-wrap {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+    }
+    #run-map {
+        width: 100%;
+        height: 320px;
+        background: #0b1015;
+        z-index: 1;
+    }
+    .map-fab-stack {
+        position: absolute;
+        right: 10px;
+        bottom: 14px;
+        z-index: 500;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .map-fab {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.94);
+        color: #111118;
+        font-weight: 800;
+        font-size: 0.72rem;
+        display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        cursor: pointer;
     }
-    .gps-status {
-        font-size: 0.76rem;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.06);
-        color: #94a3b8;
-    }
-    .gps-status.live {
-        background: rgba(22, 199, 132, 0.18);
-        color: #34d399;
-        border: 1px solid rgba(22, 199, 132, 0.45);
-    }
-    .gps-status.err {
-        background: rgba(255, 36, 66, 0.16);
-        color: #fda4af;
-        border: 1px solid rgba(255, 36, 66, 0.4);
-    }
-    .gps-stats-row {
+    .gps-overlay-bar {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-bottom: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 10px;
     }
     .gps-stat-box {
-        background: #060609;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
         border-radius: 12px;
-        padding: 10px;
+        padding: 9px 6px;
         text-align: center;
     }
     .gps-stat-box small {
         display: block;
-        font-size: 0.72rem;
-        color: #94a3b8;
+        font-size: 0.68rem;
+        color: var(--text-muted);
         font-weight: 700;
         text-transform: uppercase;
     }
     .gps-stat-box strong {
-        font-size: 1.35rem;
+        font-size: 1.12rem;
         font-weight: 900;
-        color: #22c55e;
+        color: #16c784;
     }
-    #run-map {
-        width: 100%;
-        height: 270px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: #060609;
-        z-index: 1;
+    .gps-status {
+        font-size: 0.74rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-muted);
     }
+    .gps-status.live { background: rgba(22, 199, 132, 0.18); color: #16c784; }
+    .gps-status.err { background: rgba(255, 36, 66, 0.16); color: #ff2442; }
 
     .filter-row { display: flex; gap: 6px; margin-bottom: 12px; }
-    .filter-pill { padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.1); background: #060609; color: #94a3b8; cursor: pointer; }
+    .filter-pill { padding: 6px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--border-subtle); background: var(--bg-black); color: var(--text-muted); cursor: pointer; }
     .filter-pill.active { background: #ff2e88; color: #fff; border-color: #ff2e88; }
 
-    .record-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: #060609; border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 8px; }
-    .rec-date { font-size: 0.76rem; color: #94a3b8; font-weight: 600; }
-    .rec-main { font-size: 0.95rem; font-weight: 800; margin-top: 2px; color: #f8fafc; }
+    .record-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: var(--bg-black); border: 1px solid var(--border-subtle); margin-bottom: 8px; }
+    .rec-date { font-size: 0.76rem; color: var(--text-muted); font-weight: 600; }
+    .rec-main { font-size: 0.95rem; font-weight: 800; margin-top: 2px; color: var(--text-main); }
     .mode-badge { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
-    .badge-study { background: rgba(255, 46, 136, 0.16); color: #ff7eb3; border: 1px solid rgba(255, 46, 136, 0.35); }
-    .badge-run { background: rgba(22, 199, 132, 0.16); color: #34d399; border: 1px solid rgba(22, 199, 132, 0.38); }
+    .badge-study { background: rgba(255, 46, 136, 0.16); color: #ff2e88; border: 1px solid rgba(255, 46, 136, 0.35); }
+    .badge-run { background: rgba(22, 199, 132, 0.16); color: #16c784; border: 1px solid rgba(22, 199, 132, 0.38); }
 </style>
 
 <h1 style="margin-bottom: 12px;">Timer</h1>
@@ -153,17 +163,30 @@
     <button type="button" id="tab-countdown" class="tool-btn" onclick="setTool('countdown')">Countdown</button>
 </div>
 
-<!-- LIVE GPS MAP PANEL (SHOWN IN RUNNING MODE) -->
+<!-- STRAVA-STYLE SATELLITE GPS MAP -->
 <div id="gps-panel" class="card gps-panel">
-    <div class="gps-top">
-        <h3>Live Route</h3>
-        <div style="display:flex; align-items:center; gap:8px;">
-            <span id="gps-status" class="gps-status">Waiting for GPS</span>
-            <button type="button" class="btn btn-dark btn-sm" onclick="requestLocationPermission()">Locate</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3>Route</h3>
+        <span id="gps-status" class="gps-status">Waiting for GPS</span>
+    </div>
+
+    <div class="map-wrap">
+        <div id="run-map"></div>
+        <div class="map-fab-stack">
+            <button type="button" class="map-fab" id="layer-toggle-btn" onclick="toggleMapLayer()" title="Switch Map">SAT</button>
+            <button type="button" class="map-fab" onclick="requestLocationPermission()" title="Center GPS">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                </svg>
+            </button>
         </div>
     </div>
 
-    <div class="gps-stats-row">
+    <div class="gps-overlay-bar">
         <div class="gps-stat-box">
             <small>Distance</small>
             <strong id="gps-distance">0.00 km</strong>
@@ -172,18 +195,19 @@
             <small>Pace</small>
             <strong id="gps-pace" style="color:#ff2e88;">0:00 /km</strong>
         </div>
+        <div class="gps-stat-box">
+            <small>Elevation</small>
+            <strong id="gps-elev" style="color:var(--text-main);">0 m</strong>
+        </div>
     </div>
-
-    <div id="run-map"></div>
 </div>
 
 <!-- TIMER CARD -->
 <div class="card timer-face">
-    <div id="mode-tag" style="font-size:0.8rem; font-weight:800; color:#ff7eb3; text-transform:uppercase; letter-spacing:0.6px;">
+    <div id="mode-tag" style="font-size:0.8rem; font-weight:800; color:#ff2e88; text-transform:uppercase; letter-spacing:0.6px;">
         Study Mode • Stopwatch
     </div>
 
-    <!-- STOPWATCH -->
     <div id="view-stopwatch">
         <div id="sw-display" class="timer-digits">00:00:00<small>.0</small></div>
         <div class="btn-row-4">
@@ -195,22 +219,18 @@
         <div id="lap-box" class="lap-box"></div>
     </div>
 
-    <!-- COUNTDOWN -->
     <div id="view-countdown" style="display:none;">
         <div id="cd-display" class="timer-digits">25:00</div>
-
         <div class="preset-row">
             <button type="button" class="preset-btn" onclick="cdSetPreset(15)">15 min</button>
             <button type="button" class="preset-btn" onclick="cdSetPreset(25)">25 min</button>
             <button type="button" class="preset-btn" onclick="cdSetPreset(45)">45 min</button>
             <button type="button" class="preset-btn" onclick="cdSetPreset(60)">60 min</button>
         </div>
-
         <div style="display:flex; gap:8px; margin-bottom:12px;">
             <input type="number" id="cd-custom-mins" min="1" max="360" placeholder="Minutes" style="margin:0; flex:1; padding:8px 10px;">
             <button type="button" class="btn btn-dark btn-sm" onclick="cdSetCustom()">Set</button>
         </div>
-
         <div class="btn-row-3">
             <button type="button" class="btn btn-success btn-sm" onclick="cdStart()">Start</button>
             <button type="button" class="btn btn-dark btn-sm" onclick="cdPause()">Pause</button>
@@ -229,12 +249,12 @@
 <!-- TOTALS -->
 <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
     <div class="card" style="margin-bottom:0; padding:12px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TOTAL STUDY</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">TOTAL STUDY</div>
         <div style="font-size:1.2rem; font-weight:800; color:#ff2e88; margin-top:2px;">{{ study_total_text }}</div>
     </div>
     <div class="card" style="margin-bottom:0; padding:12px;">
-        <div style="font-size:0.74rem; color:#94a3b8; font-weight:700;">TOTAL RUNNING</div>
-        <div style="font-size:1.2rem; font-weight:800; color:#22c55e; margin-top:2px;">{{ running_total_text }}</div>
+        <div style="font-size:0.74rem; color:var(--text-muted); font-weight:700;">TOTAL RUNNING</div>
+        <div style="font-size:1.2rem; font-weight:800; color:#16c784; margin-top:2px;">{{ running_total_text }}</div>
     </div>
 </div>
 
@@ -242,7 +262,7 @@
 <div class="card" style="margin-top:14px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h3>Records</h3>
-        <span style="font-size:0.8rem; color:#94a3b8;">{{ records|length }}</span>
+        <span style="font-size:0.8rem; color:var(--text-muted);">{{ records|length }}</span>
     </div>
 
     <div class="filter-row">
@@ -271,7 +291,7 @@
             {% endfor %}
         </div>
     {% else %}
-        <p style="color:#94a3b8; font-size:0.86rem;">No records.</p>
+        <p style="color:var(--text-muted); font-size:0.86rem;">No records.</p>
     {% endif %}
 </div>
 
@@ -279,21 +299,15 @@
     let currentMode = 'study';
     let currentTool = 'stopwatch';
 
-    // Stopwatch
-    let swTenths = 0;
-    let swInterval = null;
-    let laps = [];
+    let swTenths = 0, swInterval = null, laps = [];
+    let cdTotalSecs = 25 * 60, cdRemainingSecs = 25 * 60, cdElapsedSecs = 0, cdInterval = null;
 
-    // Countdown
-    let cdTotalSecs = 25 * 60;
-    let cdRemainingSecs = 25 * 60;
-    let cdElapsedSecs = 0;
-    let cdInterval = null;
-
-    // Live GPS & Strava-style Map State
+    // Strava-Style Satellite Map State
     let map = null;
-    let routeLine = null;
-    let userMarker = null;
+    let satLayer = null, labelLayer = null, darkLayer = null;
+    let isSatellite = true;
+    let routeGlow = null, routeLine = null;
+    let startMarker = null, userMarker = null;
     let watchId = null;
     let routeCoords = [];
     let totalDistanceKm = 0;
@@ -304,19 +318,52 @@
             setTimeout(() => map.invalidateSize(), 150);
             return;
         }
-        map = L.map('run-map', { zoomControl: true }).setView([20.5937, 78.9629], 5);
+        map = L.map('run-map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
+        satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19
+        }).addTo(map);
+
+        labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19
+        });
+
+        // White outer casing + Strava orange-red route line
+        routeGlow = L.polyline([], {
+            color: '#ffffff',
+            weight: 8,
+            opacity: 0.75,
+            lineJoin: 'round'
         }).addTo(map);
 
         routeLine = L.polyline([], {
-            color: '#ff2442',
+            color: '#fc4c02',
             weight: 5,
-            opacity: 0.95,
+            opacity: 1,
             lineJoin: 'round'
         }).addTo(map);
+    }
+
+    function toggleMapLayer() {
+        if (!map) return;
+        const btn = document.getElementById('layer-toggle-btn');
+        if (isSatellite) {
+            map.removeLayer(satLayer);
+            map.removeLayer(labelLayer);
+            darkLayer.addTo(map);
+            btn.textContent = 'MAP';
+            isSatellite = false;
+        } else {
+            map.removeLayer(darkLayer);
+            satLayer.addTo(map);
+            labelLayer.addTo(map);
+            btn.textContent = 'SAT';
+            isSatellite = true;
+        }
     }
 
     function setGpsStatus(text, type) {
@@ -335,9 +382,13 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    function updateGpsDisplay() {
+    function updateGpsDisplay(altitude) {
         document.getElementById('gps-distance').textContent = totalDistanceKm.toFixed(2) + ' km';
         document.getElementById('live-distance-input').value = totalDistanceKm.toFixed(3);
+
+        if (typeof altitude === 'number' && !isNaN(altitude)) {
+            document.getElementById('gps-elev').textContent = Math.round(altitude) + ' m';
+        }
 
         const elapsedSecs = currentTool === 'stopwatch' ? Math.floor(swTenths / 10) : cdElapsedSecs;
         if (totalDistanceKm >= 0.02 && elapsedSecs > 0) {
@@ -350,14 +401,14 @@
         }
     }
 
-    function placeMarker(lat, lng) {
+    function placeUserDot(lat, lng) {
         if (!map) return;
         if (!userMarker) {
             userMarker = L.circleMarker([lat, lng], {
                 radius: 8,
-                fillColor: '#22c55e',
+                fillColor: '#2563eb',
                 color: '#ffffff',
-                weight: 2.5,
+                weight: 3,
                 fillOpacity: 1
             }).addTo(map);
         } else {
@@ -371,18 +422,19 @@
             setGpsStatus('GPS Unavailable', 'err');
             return;
         }
-        setGpsStatus('Requesting GPS...', '');
+        setGpsStatus('Locating...', '');
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const { latitude, longitude } = pos.coords;
+                const { latitude, longitude, altitude } = pos.coords;
                 initMap();
-                placeMarker(latitude, longitude);
+                placeUserDot(latitude, longitude);
+                updateGpsDisplay(altitude);
                 setGpsStatus('GPS Ready', 'live');
             },
             (err) => {
                 setGpsStatus(err.code === 1 ? 'Permission Denied' : 'GPS Error', 'err');
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: 12000 }
         );
     }
 
@@ -391,30 +443,40 @@
         if (watchId !== null) return;
 
         initMap();
-        setGpsStatus('Tracking Live', 'live');
+        setGpsStatus('Live Tracking', 'live');
 
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
-                const { latitude, longitude, accuracy } = pos.coords;
-                // Ignore very weak GPS signals
+                const { latitude, longitude, accuracy, altitude } = pos.coords;
                 if (accuracy && accuracy > 60) return;
 
-                placeMarker(latitude, longitude);
+                placeUserDot(latitude, longitude);
 
                 if (lastPoint) {
                     const stepKm = haversineKm(lastPoint[0], lastPoint[1], latitude, longitude);
-                    // Ignore tiny GPS drift under 3 meters
                     if (stepKm >= 0.003) {
                         totalDistanceKm += stepKm;
                         routeCoords.push([latitude, longitude]);
+                        routeGlow.setLatLngs(routeCoords);
                         routeLine.setLatLngs(routeCoords);
                         lastPoint = [latitude, longitude];
-                        updateGpsDisplay();
+                        updateGpsDisplay(altitude);
                     }
                 } else {
                     lastPoint = [latitude, longitude];
                     routeCoords.push([latitude, longitude]);
+                    routeGlow.setLatLngs(routeCoords);
                     routeLine.setLatLngs(routeCoords);
+                    if (!startMarker) {
+                        startMarker = L.circleMarker([latitude, longitude], {
+                            radius: 7,
+                            fillColor: '#22c55e',
+                            color: '#111118',
+                            weight: 2.5,
+                            fillOpacity: 1
+                        }).addTo(map);
+                    }
+                    updateGpsDisplay(altitude);
                 }
             },
             (err) => {
@@ -437,8 +499,13 @@
         routeCoords = [];
         totalDistanceKm = 0;
         lastPoint = null;
+        if (routeGlow) routeGlow.setLatLngs([]);
         if (routeLine) routeLine.setLatLngs([]);
-        updateGpsDisplay();
+        if (startMarker && map) {
+            map.removeLayer(startMarker);
+            startMarker = null;
+        }
+        updateGpsDisplay(0);
         if (currentMode === 'running') setGpsStatus('GPS Ready', 'live');
     }
 
@@ -447,13 +514,12 @@
         const modeText = currentMode === 'running' ? 'Running Mode' : 'Study Mode';
         const toolText = currentTool === 'stopwatch' ? 'Stopwatch' : 'Countdown';
         tag.textContent = `${modeText} • ${toolText}`;
-        tag.style.color = currentMode === 'running' ? '#34d399' : '#ff7eb3';
+        tag.style.color = currentMode === 'running' ? '#16c784' : '#ff2e88';
     }
 
     function setMode(mode) {
         currentMode = mode;
         document.getElementById('live-mode-input').value = mode;
-
         document.getElementById('btn-study').className = 'mode-btn' + (mode === 'study' ? ' active-study' : '');
         document.getElementById('btn-running').className = 'mode-btn' + (mode === 'running' ? ' active-running' : '');
 
@@ -466,7 +532,6 @@
             gpsPanel.classList.remove('show');
             stopGpsTracking();
         }
-
         updateHeaderTag();
     }
 
@@ -479,7 +544,6 @@
         updateHeaderTag();
     }
 
-    // STOPWATCH
     function formatSw(tenths) {
         const totalSecs = Math.floor(tenths / 10);
         const t = tenths % 10;
@@ -511,7 +575,7 @@
         const box = document.getElementById('lap-box');
         box.style.display = 'block';
         box.innerHTML = laps.map((val, idx) =>
-            `<div class="lap-item"><span style="color:#94a3b8;">Lap ${laps.length - idx}</span><strong>${val}</strong></div>`
+            `<div class="lap-item"><span style="color:var(--text-muted);">Lap ${laps.length - idx}</span><strong>${val}</strong></div>`
         ).join('');
     }
 
@@ -526,7 +590,6 @@
         resetGpsRoute();
     }
 
-    // COUNTDOWN
     function renderCd() {
         const hrs = Math.floor(cdRemainingSecs / 3600);
         const mins = String(Math.floor((cdRemainingSecs % 3600) / 60)).padStart(2, '0');
