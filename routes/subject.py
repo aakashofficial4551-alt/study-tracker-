@@ -63,8 +63,7 @@ def subjects():
 @login_required
 def add_subject():
     name = (request.form.get("name") or "").strip()
-    icon = (request.form.get("icon") or "📘").strip()
-    color = request.form.get("color") or "#ff2a85"
+    color = request.form.get("color") or "#ff2e88"
     chapters = int(request.form.get("chapters") or 0)
 
     if not name:
@@ -72,13 +71,13 @@ def add_subject():
 
     new_subject = Subject(
         name=name,
-        icon=icon,
+        icon="",
         color=color,
         total_chapters=chapters
     )
     db.session.add(new_subject)
     db.session.commit()
-    flash(f"Subject '{name}' added!", "success")
+    flash("Subject added.", "success")
     return redirect(url_for("subject.subjects"))
 
 
@@ -104,11 +103,11 @@ def add_test():
         marks_obtained = float(request.form.get("marks_obtained") or 0)
         total_marks = float(request.form.get("total_marks") or 100)
     except ValueError:
-        flash("Please enter valid numbers for marks.", "danger")
+        flash("Enter valid marks.", "danger")
         return redirect(url_for("subject.subjects"))
 
     if not test_name or not subject_name:
-        flash("Test Name aur Subject dono zaroori hain.", "warning")
+        flash("Test name and subject are required.", "warning")
         return redirect(url_for("subject.subjects"))
 
     try:
@@ -120,7 +119,6 @@ def add_test():
     except ValueError:
         parsed_date = get_ist_now().date()
 
-    # Format 24h time to clean 12h display if provided
     display_time = test_time
     if test_time and ":" in test_time:
         try:
@@ -139,7 +137,7 @@ def add_test():
     )
     db.session.add(record)
     db.session.commit()
-    flash(f"Test saved: {test_name} ({marks_obtained:g}/{total_marks:g})", "success")
+    flash("Test saved.", "success")
     return redirect(url_for("subject.subjects"))
 
 
@@ -150,5 +148,5 @@ def delete_test(id):
     if record.user_id == current_user.id:
         db.session.delete(record)
         db.session.commit()
-        flash("Test record deleted.", "info")
+        flash("Deleted.", "info")
     return redirect(url_for("subject.subjects"))
