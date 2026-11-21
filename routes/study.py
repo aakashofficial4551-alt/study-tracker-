@@ -63,6 +63,7 @@ def home():
             "id": s.id,
             "date": date_str,
             "duration_text": format_duration(s.duration or 0),
+            "distance_text": (s.chapter or "").strip(),
             "mode": mode_label,
             "is_running": is_running,
         })
@@ -82,16 +83,22 @@ def save():
     mode_label = "Running Mode" if mode == "running" else "Study Mode"
     duration = int(request.form.get("duration") or 0)
 
+    try:
+        distance_km = float(request.form.get("distance_km") or 0)
+    except ValueError:
+        distance_km = 0.0
+
     if duration <= 0:
         flash("Start the timer before saving.", "warning")
         return redirect(url_for("study.home"))
 
+    distance_label = f"{distance_km:.2f} km" if (mode == "running" and distance_km > 0) else ""
     now_ist = get_ist_now()
 
     session = StudySession(
         user_id=current_user.id,
         subject=mode_label,
-        chapter="",
+        chapter=distance_label,
         duration=duration,
         notes="",
         rating=5,
@@ -103,7 +110,8 @@ def save():
     db.session.add(session)
     db.session.commit()
 
-    flash(f"Saved: {format_duration(duration)} • {mode_label}", "success")
+    extra = f" • {distance_label}" if distance_label else ""
+    flash(f"Saved: {format_duration(duration)}{extra}", "success")
     return redirect(url_for("study.home"))
 
 
@@ -114,5 +122,5 @@ def delete(id):
     if session.user_id == current_user.id:
         db.session.delete(session)
         db.session.commit()
-        flash("Record deleted.", "info")
+        flash("Deleted.", "info")
     return redirect(url_for("study.home"))
