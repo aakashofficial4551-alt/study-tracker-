@@ -10,18 +10,22 @@ from flask import (
     current_app,
 )
 from flask_login import login_required, current_user, logout_user
+from sqlalchemy import or_
 
 from extensions import db
+from models.user import User
+from models.habits import DailyProgress
+from models.gym import GymLog
+from models.study_session import StudySession
+from models.mock_test import TestRecord
 from models.settings import DeviceLocation
+from models.rest import RestMessage, LiveDevice
 
 settings_bp = Blueprint(
     "settings",
     __name__,
     url_prefix="/settings"
 )
-
-# Kept hidden for now; ready to enable Friends & Messaging in the future
-ENABLE_MESSAGING = False
 
 
 def get_ist_now():
@@ -35,7 +39,6 @@ def index():
     return render_template(
         "settings/index.html",
         saved_loc=saved_loc,
-        enable_messaging=ENABLE_MESSAGING,
         auth_disabled=current_app.config.get("DISABLE_AUTH", False),
     )
 
@@ -84,3 +87,36 @@ def logout_action():
     logout_user()
     flash("Logged out.", "info")
     return redirect(url_for("auth.login"))
+
+
+@settings_bp.route("/delete-account", methods=["POST"])
+@login_required
+def delete_account():
+    uid = current_user.id
+
+    DailyProgress.query.filter_by(user_id=uid).delete()
+    GymLog.query.filter_by(user_id=uid).delete()
+    StudySession.query.filter_by(user_id=uid).delete()
+    TestRecord.query.filter_by(user_id=uid).delete()
+    DeviceLocation.query.filter_by(user_id=uid).delete()
+    LiveDevice.query.filter_by(user_id=uid).delete()
+    RestMessage.query.filter(
+        or_(RestMessage.sender_id == uid, RestMessage.receiver_id == uid)
+    ).delete(synchronize_session=False)
+
+    try:
+        from models.task import Task
+        Task.query.filter_by(user_id=uid).delete()
+    except Exception:
+        pass
+
+    user = User.query.get(uid)
+    logout_user()
+    if user:
+        db.session.delete(user)
+    db.session.commit()
+
+    flash("Account and all data permanently deleted.", "info")
+    if current_app.config.get("DISABLE_AUTH"):
+        return redirect(url_for("dashboard.dashboard"))
+    return redirect(url_for("auth.register"))
