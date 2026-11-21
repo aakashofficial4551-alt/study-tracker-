@@ -291,6 +291,7 @@
         {% if current_user.is_authenticated %}
             <a href="{{ url_for('auth.logout') }}" class="logout-pill" style="display:none;" id="mobile-logout">Logout</a>
         {% endif %}
+    <button id="install-app-btn" class="btn btn-sm" style="display:none;">Install App</button>
     </nav>
 
     <div class="container">
@@ -351,5 +352,35 @@
             accent-color: #22c55e;
         }
     </style>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+            });
+        }
+
+        let deferredPrompt = null;
+        const installBtn = document.getElementById("install-app-btn");
+
+        window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installBtn) installBtn.style.display = "inline-flex";
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener("click", async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBtn.style.display = "none";
+            });
+        }
+
+        window.addEventListener("appinstalled", () => {
+            if (installBtn) installBtn.style.display = "none";
+        });
+    </script>
 </body>
 </html>
