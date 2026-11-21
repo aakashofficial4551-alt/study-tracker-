@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, url_for, request, send_from_directory
 from flask_login import current_user, login_user
 from sqlalchemy import inspect, text
 import os
@@ -24,11 +24,9 @@ from routes.settings import settings_bp
 from routes.task import task_bp
 from routes.habits import habits_bp
 from routes.gym import gym_bp
-# from routes.calendar import calendar_bp  # Future mein wapas on kar sakte ho
 
 
 def ensure_schema_columns():
-    """Purane SQLite DB mein naye columns safely add karta hai taaki error na aaye."""
     inspector = inspect(db.engine)
     if "daily_progress" in inspector.get_table_names():
         cols = {c["name"] for c in inspector.get_columns("daily_progress")}
@@ -49,10 +47,9 @@ def create_app():
     # Load Config
     app.config.from_object(Config)
 
-    # Login abhi OFF hai — future mein login wapas lane ke liye bas False kar dena
+    # Set to False in the future when you want login back
     app.config["DISABLE_AUTH"] = True
 
-    # Create instance folder
     os.makedirs(app.instance_path, exist_ok=True)
 
     # Initialize Extensions
@@ -72,14 +69,12 @@ def create_app():
     app.register_blueprint(task_bp)
     app.register_blueprint(habits_bp)
     app.register_blueprint(gym_bp)
-    # app.register_blueprint(calendar_bp)  # Disabled for now
 
-    # Temporary auto-login while DISABLE_AUTH is True
     @app.before_request
     def auto_login_owner():
         if not app.config.get("DISABLE_AUTH"):
             return
-        if request.endpoint == "static":
+        if request.endpoint in ("static", "manifest", "service_worker"):
             return
         if not current_user.is_authenticated:
             user = User.query.first()
@@ -95,7 +90,6 @@ def create_app():
                 db.session.commit()
             login_user(user, remember=True)
 
-    # Create / Upgrade Database Tables
     with app.app_context():
         db.create_all()
         ensure_schema_columns()
@@ -109,6 +103,27 @@ app = create_app()
 @app.route("/")
 def home():
     return redirect(url_for("dashboard.dashboard"))
+
+
+@app.route("/manifest.json")
+def manifest():
+    return send_from_directory(
+        app.static_folder,
+        "manifest.json",
+        mimetype="application/manifest+json",
+    )
+
+
+@app.route("/sw.js")
+def service_worker():
+    response = send_from_directory(
+        app.static_folder,
+        "sw.js",
+        mimetype="application/javascript",
+    )
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 if __name__ == "__main__":
