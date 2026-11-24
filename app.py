@@ -178,6 +178,7 @@ def create_app():
             "favicon",
             "icon_192",
             "icon_512",
+            "assetlinks",
         ):
             return
         if not current_user.is_authenticated:
@@ -229,6 +230,15 @@ def icon_512():
 @app.route("/favicon.ico")
 def favicon():
     return serve_app_icon(192)
+
+
+@app.route("/.well-known/assetlinks.json")
+def assetlinks():
+    return send_from_directory(
+        app.static_folder,
+        "assetlinks.json",
+        mimetype="application/json",
+    )
 
 
 @app.route("/manifest.json")
