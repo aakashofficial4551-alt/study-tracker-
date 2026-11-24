@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.onrender.study_tracker_grzv.twa",
+        "sha256_cert_fingerprints": ["AF:7B:DF:C7:9E:50:15:EB:C9:64:A3:FD:1D:F2:52:B4:0B:8A:C3:12:39:26:E4:5A:A7:02:97:4C:DB:F0:B0:98"]
+      }
+    }]
