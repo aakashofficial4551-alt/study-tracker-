@@ -1,28 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Login - StudyOS{% endblock %}
+{% block title %}UR RECORDS{% endblock %}
 
 {% block content %}
-<div class="card auth-box">
-    <h2 style="margin-bottom: 16px;">Login</h2>
-    <form method="POST">
-        {{ form.hidden_tag() }}
+<div class="auth-box card" style="max-width:420px; margin:28px auto;">
+    <h1 style="margin-bottom:14px;">UR RECORDS</h1>
 
-        <label>{{ form.username.label.text }}</label>
-        {{ form.username(placeholder="Enter username") }}
-        {% for error in form.username.errors %}
-            <div class="error-text">{{ error }}</div>
-        {% endfor %}
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        <label>Username</label>
+        <input type="text" name="username" autocomplete="username" required>
 
-        <label>{{ form.password.label.text }}</label>
-        {{ form.password(placeholder="Enter password") }}
-        {% for error in form.password.errors %}
-            <div class="error-text">{{ error }}</div>
-        {% endfor %}
+        <label>Name</label>
+        <input type="text" name="full_name" autocomplete="name" required>
 
-        {{ form.submit(class="btn", style="width:100%;") }}
+        <button type="submit" class="btn" style="width:100%; margin-top:6px;">Continue</button>
     </form>
-    <p style="margin-top: 14px; text-align: center; color: #94a3b8;">
-        Account nahi hai? <a href="{{ url_for('auth.register') }}" style="color:#38bdf8;">Register karein</a>
-    </p>
 </div>
 {% endblock %}
