@@ -136,13 +136,19 @@ def ensure_schema_columns():
                 text("ALTER TABLE daily_progress ADD COLUMN meditation BOOLEAN DEFAULT 0")
             )
         db.session.commit()
+        if "rest_messages" in inspector.get_table_names():
+        rcols = {c["name"] for c in inspector.get_columns("rest_messages")}
+        if "seen" not in rcols:
+            db.session.execute(
+                text("ALTER TABLE rest_messages ADD COLUMN seen BOOLEAN DEFAULT 0")
+            )
 
 
 def create_app():
     app = Flask(__name__)
 
     app.config.from_object(Config)
-    app.config["DISABLE_AUTH"] = True
+    app.config["DISABLE_AUTH"] = False
 
     os.makedirs(app.instance_path, exist_ok=True)
 
