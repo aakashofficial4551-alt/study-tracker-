@@ -7,9 +7,10 @@ class RestMessage(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, nullable=False, index=True)
-    receiver_id = db.Column(db.Integer, nullable=True, index=True)  # None in open mode
+    receiver_id = db.Column(db.Integer, nullable=True, index=True)
     sender_device = db.Column(db.String(64), default="", index=True)
     body = db.Column(db.Text, nullable=False)
+    seen = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
