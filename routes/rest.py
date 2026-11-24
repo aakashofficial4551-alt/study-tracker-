@@ -93,7 +93,7 @@ def check_latest():
             .first()
         )
 
-    return jsonify({"latest_id": latest.id if latest else 0})
+    return jsonify({"id": latest.id if latest else 0})
 
 
 @rest_bp.route("/feed")
@@ -102,27 +102,35 @@ def feed():
     auth_disabled = bool(current_app.config.get("DISABLE_AUTH", False))
     device_id = (request.args.get("device_id") or "").strip()[:64]
     target_id = request.args.get("u", type=int)
+    after_id = request.args.get("after", type=int) or 0
     cutoff = get_ist_now() - timedelta(minutes=ONLINE_WINDOW_MINUTES)
 
+    # Mark incoming messages as seen when user opens Rest
     if auth_disabled:
+        incoming = (
+            RestMessage.query
+            .filter(RestMessage.receiver_id.is_(None), RestMessage.seen.is_(False))
+        )
+        if device_id:
+            incoming = incoming.filter(RestMessage.sender_device != device_id)
+        for m in incoming.all():
+            m.seen = True
+
         msgs = (
             RestMessage.query
-            .filter(RestMessage.receiver_id.is_(None))
+            .filter(RestMessage.receiver_id.is_(None), RestMessage.id > after_id)
             .order_by(RestMessage.id.asc())
-            .limit(100)
+            .limit(50)
             .all()
         )
-        items = [
-            {
-                "id": m.id,
-                "body": m.body,
-                "mine": bool(device_id and m.sender_device == device_id),
-                "time": m.created_at.strftime("%I:%M %p") if m.created_at else "",
-            }
-            for m in msgs
+        seen_ids = [
+            m.id for m in RestMessage.query
+            .filter(RestMessage.receiver_id.is_(None), RestMessage.seen.is_(True))
+            .order_by(RestMessage.id.desc())
+            .limit(40)
+            .all()
         ]
 
-        # Only return OTHER person's live location if online (never own location)
         peer_dev = None
         if device_id:
             peer_dev = (
@@ -140,43 +148,57 @@ def feed():
         peer_location = None
         if peer_dev:
             peer_location = {
-                "latitude": peer_dev.latitude,
-                "longitude": peer_dev.longitude,
-                "accuracy": peer_dev.accuracy,
-                "updated_at": peer_dev.updated_at.strftime("%I:%M %p") if peer_dev.updated_at else "",
+                "lat": peer_dev.latitude,
+                "lng": peer_dev.longitude,
+                "t": peer_dev.updated_at.strftime("%I:%M %p") if peer_dev.updated_at else "",
             }
 
+        db.session.commit()
+
         return jsonify({
-            "items": items,
-            "peer_online": peer_location is not None,
-            "peer_location": peer_location,
+            "items": [
+                {
+                    "id": m.id,
+                    "b": m.body,
+                    "m": bool(device_id and m.sender_device == device_id),
+                    "s": bool(m.seen),
+                    "t": m.created_at.strftime("%I:%M %p") if m.created_at else "",
+                }
+                for m in msgs
+            ],
+            "seen_ids": seen_ids,
+            "on": peer_location is not None,
+            "loc": peer_location,
         })
 
-    # Authenticated 1-on-1 mode
     if not target_id or target_id == current_user.id:
-        return jsonify({"items": [], "peer_online": False, "peer_location": None})
+        return jsonify({"items": [], "seen_ids": [], "on": False, "loc": None})
+
+    for m in RestMessage.query.filter_by(
+        sender_id=target_id, receiver_id=current_user.id, seen=False
+    ).all():
+        m.seen = True
 
     msgs = (
         RestMessage.query
         .filter(
+            RestMessage.id > after_id,
             or_(
                 and_(RestMessage.sender_id == current_user.id, RestMessage.receiver_id == target_id),
                 and_(RestMessage.sender_id == target_id, RestMessage.receiver_id == current_user.id),
             )
         )
         .order_by(RestMessage.id.asc())
-        .limit(100)
+        .limit(50)
         .all()
     )
 
-    items = [
-        {
-            "id": m.id,
-            "body": m.body,
-            "mine": m.sender_id == current_user.id,
-            "time": m.created_at.strftime("%I:%M %p") if m.created_at else "",
-        }
-        for m in msgs
+    seen_ids = [
+        m.id for m in RestMessage.query
+        .filter_by(sender_id=current_user.id, receiver_id=target_id, seen=True)
+        .order_by(RestMessage.id.desc())
+        .limit(40)
+        .all()
     ]
 
     peer_loc = (
@@ -193,16 +215,27 @@ def feed():
     peer_location = None
     if peer_loc:
         peer_location = {
-            "latitude": peer_loc.latitude,
-            "longitude": peer_loc.longitude,
-            "accuracy": peer_loc.accuracy,
-            "updated_at": peer_loc.updated_at.strftime("%I:%M %p") if peer_loc.updated_at else "",
+            "lat": peer_loc.latitude,
+            "lng": peer_loc.longitude,
+            "t": peer_loc.updated_at.strftime("%I:%M %p") if peer_loc.updated_at else "",
         }
 
+    db.session.commit()
+
     return jsonify({
-        "items": items,
-        "peer_online": peer_location is not None,
-        "peer_location": peer_location,
+        "items": [
+            {
+                "id": m.id,
+                "b": m.body,
+                "m": m.sender_id == current_user.id,
+                "s": bool(m.seen),
+                "t": m.created_at.strftime("%I:%M %p") if m.created_at else "",
+            }
+            for m in msgs
+        ],
+        "seen_ids": seen_ids,
+        "on": peer_location is not None,
+        "loc": peer_location,
     })
 
 
@@ -212,9 +245,9 @@ def send():
     auth_disabled = bool(current_app.config.get("DISABLE_AUTH", False))
     data = request.get_json(silent=True) or {}
 
-    body = (data.get("body") or "").strip()
-    device_id = (data.get("device_id") or "").strip()[:64]
-    target_id = data.get("receiver_id")
+    body = (data.get("b") or "").strip()
+    device_id = (data.get("d") or "").strip()[:64]
+    target_id = data.get("u")
 
     if not body:
         return jsonify({"ok": False}), 400
@@ -233,24 +266,29 @@ def send():
         receiver_id=receiver_id,
         sender_device=device_id,
         body=body[:2000],
+        seen=False,
         created_at=get_ist_now(),
     )
     db.session.add(msg)
     db.session.commit()
 
-    return jsonify({"ok": True, "id": msg.id})
+    return jsonify({
+        "ok": True,
+        "id": msg.id,
+        "t": msg.created_at.strftime("%I:%M %p"),
+    })
 
 
 @rest_bp.route("/ping", methods=["POST"])
 @login_required
 def ping_location():
     data = request.get_json(silent=True) or {}
-    device_id = (data.get("device_id") or "").strip()[:64]
+    device_id = (data.get("d") or "").strip()[:64]
 
     try:
-        lat = float(data.get("latitude"))
-        lng = float(data.get("longitude"))
-        accuracy = float(data.get("accuracy") or 0)
+        lat = round(float(data.get("lat")), 5)
+        lng = round(float(data.get("lng")), 5)
+        accuracy = float(data.get("acc") or 0)
     except (TypeError, ValueError):
         return jsonify({"ok": False}), 400
 
