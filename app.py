@@ -123,9 +123,12 @@ def build_ur_icon_png(size):
     return png_bytes
 
 
+
 def ensure_schema_columns():
     inspector = inspect(db.engine)
-    if "daily_progress" in inspector.get_table_names():
+    tables = inspector.get_table_names()
+
+    if "daily_progress" in tables:
         cols = {c["name"] for c in inspector.get_columns("daily_progress")}
         if "learn_new" not in cols:
             db.session.execute(
@@ -135,14 +138,15 @@ def ensure_schema_columns():
             db.session.execute(
                 text("ALTER TABLE daily_progress ADD COLUMN meditation BOOLEAN DEFAULT 0")
             )
-        db.session.commit()
-        if "rest_messages" in inspector.get_table_names():
+
+    if "rest_messages" in tables:
         rcols = {c["name"] for c in inspector.get_columns("rest_messages")}
         if "seen" not in rcols:
             db.session.execute(
                 text("ALTER TABLE rest_messages ADD COLUMN seen BOOLEAN DEFAULT 0")
             )
 
+    db.session.commit()
 
 def create_app():
     app = Flask(__name__)
