@@ -2,9 +2,6 @@
 {% block title %}Rest - UR RECORDS{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
     .rest-head {
         display: flex;
@@ -42,28 +39,9 @@
         text-decoration: none;
         color: var(--text-main);
     }
-    #peer-loc-card {
-        display: none;
-        padding: 12px;
-    }
-    #rest-map {
-        width: 100%;
-        height: 185px;
-        border-radius: 12px;
-        border: 1px solid var(--border-subtle);
-        margin-top: 8px;
-        z-index: 1;
-    }
-    .loc-meta {
-        font-size: 0.78rem;
-        color: var(--text-muted);
-        margin-top: 8px;
-        display: flex;
-        justify-content: space-between;
-        gap: 6px;
-    }
     .thread-box {
-        height: 360px;
+        height: 62vh;
+        min-height: 340px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
@@ -78,7 +56,7 @@
         max-width: 80%;
         padding: 9px 12px;
         border-radius: 14px;
-        font-size: 0.92rem;
+        font-size: 0.93rem;
         line-height: 1.4;
         word-wrap: break-word;
     }
@@ -174,20 +152,7 @@
 </div>
 {% endif %}
 
-<!-- ONLINE PEER LOCATION ONLY -->
-<div class="card" id="peer-loc-card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="font-size:0.92rem;">Live Location</h3>
-        <a id="peer-maps-link" href="#" target="_blank" class="btn btn-dark btn-sm">Maps</a>
-    </div>
-    <div id="rest-map"></div>
-    <div class="loc-meta">
-        <span id="loc-coords"></span>
-        <span id="loc-updated"></span>
-    </div>
-</div>
-
-<!-- MESSAGE BOX -->
+<!-- PURE TEXT BOX (ZERO MAP DATA) -->
 <div class="card">
     <div id="thread-box" class="thread-box"></div>
 
@@ -200,63 +165,7 @@
 <script>
     const targetUserId = {{ target_user.id if target_user else 'null' }};
     const deviceId = window.getUrDeviceId ? window.getUrDeviceId() : 'dev_default';
-
-    let restMap = null;
-    let peerMarker = null;
     let lastId = 0;
-    let lastCoordsKey = '';
-
-    function ensureMap(lat, lng) {
-        if (!restMap) {
-            restMap = L.map('rest-map', { zoomControl: false }).setView([lat, lng], 16);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19
-            }).addTo(restMap);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-                maxZoom: 19
-            }).addTo(restMap);
-        } else {
-            setTimeout(() => restMap.invalidateSize(), 120);
-        }
-
-        if (!peerMarker) {
-            peerMarker = L.circleMarker([lat, lng], {
-                radius: 9,
-                fillColor: '#ff2442',
-                color: '#ffffff',
-                weight: 3,
-                fillOpacity: 1
-            }).addTo(restMap);
-        } else {
-            peerMarker.setLatLng([lat, lng]);
-        }
-
-        const key = `${lat},${lng}`;
-        if (key !== lastCoordsKey) {
-            restMap.setView([lat, lng], 16, { animate: true });
-            lastCoordsKey = key;
-        }
-    }
-
-    function renderPeerLocation(online, loc) {
-        const pill = document.getElementById('peer-status');
-        const card = document.getElementById('peer-loc-card');
-
-        if (online && loc) {
-            pill.textContent = 'Online';
-            pill.classList.add('online');
-            card.style.display = 'block';
-            ensureMap(loc.lat, loc.lng);
-            document.getElementById('loc-coords').textContent = `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
-            document.getElementById('loc-updated').textContent = loc.t || '';
-            document.getElementById('peer-maps-link').href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
-        } else {
-            pill.textContent = 'Offline';
-            pill.classList.remove('online');
-            card.style.display = 'none';
-            lastCoordsKey = '';
-        }
-    }
 
     function escapeHtml(str) {
         return str
@@ -304,7 +213,14 @@
             if (!res.ok) return;
             const data = await res.json();
 
-            renderPeerLocation(data.on, data.loc);
+            const pill = document.getElementById('peer-status');
+            if (data.on) {
+                pill.textContent = 'Online';
+                pill.classList.add('online');
+            } else {
+                pill.textContent = 'Offline';
+                pill.classList.remove('online');
+            }
 
             const box = document.getElementById('thread-box');
             if (lastId === 0 && (!data.items || !data.items.length)) {
@@ -348,38 +264,8 @@
         } catch (e) {}
     }
 
-    // Ultra-light location ping only when coordinates shift (~15m+)
-    let lastSentLat = null, lastSentLng = null;
-
-    function pingSilently() {
-        if (!('geolocation' in navigator) || document.visibilityState === 'hidden') return;
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const lat = Number(pos.coords.latitude.toFixed(5));
-                const lng = Number(pos.coords.longitude.toFixed(5));
-                const moved = lastSentLat === null ||
-                    Math.abs(lat - lastSentLat) > 0.00015 ||
-                    Math.abs(lng - lastSentLng) > 0.00015;
-                if (!moved) return;
-
-                lastSentLat = lat;
-                lastSentLng = lng;
-                fetch('/rest/ping', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ d: deviceId, lat, lng, acc: pos.coords.accuracy || 0 })
-                }).catch(() => {});
-            },
-            () => {},
-            { enableHighAccuracy: false, timeout: 8000, maximumAge: 25000 }
-        );
-    }
-
     loadFeed();
-    pingSilently();
-    // 5s interval + incremental `after=` query keeps text bandwidth near zero
-    setInterval(loadFeed, 5000);
-    setInterval(pingSilently, 30000);
+    setInterval(loadFeed, 4000);
 </script>
 {% endif %}
 {% endblock %}
