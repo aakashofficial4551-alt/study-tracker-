@@ -1,38 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - StudyOS{% endblock %}
+{% block title %}Home - UR RECORDS{% endblock %}
 
 {% block content %}
 <style>
     .hero-banner {
-        background: linear-gradient(135deg, rgba(255, 46, 76, 0.16) 0%, rgba(255, 42, 133, 0.12) 55%, rgba(16, 185, 129, 0.1) 100%);
-        border: 1px solid rgba(255, 42, 133, 0.32);
+        background: linear-gradient(135deg, rgba(255, 36, 66, 0.16) 0%, rgba(255, 46, 136, 0.12) 55%, rgba(22, 199, 132, 0.1) 100%);
+        border: 1px solid rgba(255, 46, 136, 0.32);
         border-radius: 16px;
         padding: 18px;
         margin-bottom: 14px;
     }
     .hero-quote {
-        font-size: 1.35rem;
+        font-size: 1.32rem;
         font-weight: 900;
         margin-bottom: 6px;
         letter-spacing: -0.3px;
-        background: linear-gradient(90deg, #ffffff 0%, #ff7eb3 60%, #ff2e4c 100%);
+        background: linear-gradient(90deg, #ffffff 0%, #ff7eb3 60%, #ff2442 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        transition: opacity 0.25s ease;
     }
     .hero-date {
         font-size: 0.82rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         font-weight: 600;
     }
     .kpi-card {
-        background: #121219;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 14px;
         padding: 14px;
     }
     .kpi-label {
         font-size: 0.74rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -53,21 +54,19 @@
         align-items: center;
         justify-content: space-between;
         text-decoration: none;
-        background: #121219;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 14px;
         padding: 18px 16px;
-        transition: transform 0.12s ease;
     }
-    .quick-tile:active { transform: scale(0.97); }
     .qt-title {
         font-size: 1rem;
         font-weight: 800;
-        color: #f8fafc;
+        color: var(--text-main);
     }
-    .tile-green { border-top: 3px solid #10b981; }
-    .tile-pink { border-top: 3px solid #ff2a85; }
-    .tile-red { border-top: 3px solid #ff2e4c; }
+    .tile-green { border-top: 3px solid #16c784; }
+    .tile-pink { border-top: 3px solid #ff2e88; }
+    .tile-red { border-top: 3px solid #ff2442; }
     .tile-blue { border-top: 3px solid #3b82f6; }
 
     .today-pills {
@@ -81,26 +80,26 @@
         border-radius: 999px;
         font-size: 0.78rem;
         font-weight: 700;
-        background: #0b0b10;
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        color: #64748b;
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
     }
     .pill.done {
-        background: rgba(16, 185, 129, 0.16);
-        border-color: rgba(16, 185, 129, 0.45);
-        color: #34d399;
+        background: rgba(22, 199, 132, 0.16);
+        border-color: rgba(22, 199, 132, 0.45);
+        color: #16c784;
     }
 </style>
 
 <div class="hero-banner">
-    <div class="hero-quote">"If not today, then when?"</div>
+    <div id="home-quote" class="hero-quote">"If not today, then when?"</div>
     <div class="hero-date">{{ today.strftime('%A, %d %b %Y') }}</div>
 </div>
 
 <div class="stats-grid">
     <div class="kpi-card">
         <div class="kpi-label">Today's Score</div>
-        <div class="kpi-value" style="color: {% if today_score >= 70 %}#22c55e{% elif today_score >= 40 %}#f59e0b{% else %}#ff2e4c{% endif %};">
+        <div class="kpi-value" style="color: {% if today_score >= 70 %}#16c784{% elif today_score >= 40 %}#f59e0b{% else %}#ff2442{% endif %};">
             {{ today_score }}%
         </div>
         <div class="progress-bar">
@@ -110,18 +109,18 @@
 
     <div class="kpi-card">
         <div class="kpi-label">Study Timer</div>
-        <div class="kpi-value" style="color: #ff2a85;">{{ study_time_str }}</div>
+        <div class="kpi-value" style="color: #ff2e88;">{{ study_time_str }}</div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-label">Running</div>
-        <div class="kpi-value" style="color: #22c55e;">{{ running_time_str }}</div>
+        <div class="kpi-value" style="color: #16c784;">{{ running_time_str }}</div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-label">Today</div>
-        <div class="kpi-value" style="color: #ff2e4c;">Day {{ next_gym_day }}</div>
-        <div style="font-size:0.78rem; color:#cbd5e1; margin-top:3px;">{{ next_gym_title }}</div>
+        <div class="kpi-value" style="color: #ff2442;">Day {{ next_gym_day }}</div>
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:3px;">{{ next_gym_title }}</div>
     </div>
 </div>
 
@@ -139,7 +138,7 @@
     </a>
 
     <a href="{{ url_for('subject.subjects') }}" class="quick-tile tile-blue">
-        <span class="qt-title">Subjects</span>
+        <span class="qt-title">Subject</span>
     </a>
 </div>
 
@@ -167,4 +166,44 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+    // ============================================================
+    // ADD YOUR OWN LINES INSIDE THIS LIST (EACH LINE IN QUOTES)
+    // ============================================================
+    const HOME_LINES = [
+        "If not today, then when?",
+        "Discipline beats motivation every single day.",
+        "One focused hour today saves ten regretful hours tomorrow.",
+        "Do the work even when nobody is watching.",
+        "Small daily wins build unstoppable momentum.",
+        "Your future self is watching what you do right now.",
+        "Stay consistent. Results are silent before they are loud."
+    ];
+
+    (function () {
+        const el = document.getElementById("home-quote");
+        if (!el || !HOME_LINES.length) return;
+
+        let lastIdx = parseInt(localStorage.getItem("ur_last_quote_idx") || "-1", 10);
+
+        function showNextLine() {
+            let idx = Math.floor(Math.random() * HOME_LINES.length);
+            if (HOME_LINES.length > 1 && idx === lastIdx) {
+                idx = (idx + 1) % HOME_LINES.length;
+            }
+            lastIdx = idx;
+            localStorage.setItem("ur_last_quote_idx", String(idx));
+            el.style.opacity = "0.25";
+            setTimeout(() => {
+                el.textContent = `"${HOME_LINES[idx]}"`;
+                el.style.opacity = "1";
+            }, 180);
+        }
+
+        // New line every time Home opens + every 60 seconds
+        showNextLine();
+        setInterval(showNextLine, 60000);
+    })();
+</script>
 {% endblock %}
