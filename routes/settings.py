@@ -20,6 +20,7 @@ from models.study_session import StudySession
 from models.mock_test import TestRecord
 from models.settings import DeviceLocation
 from models.rest import RestMessage, LiveDevice
+from routes.admin import is_admin_user
 
 settings_bp = Blueprint(
     "settings",
@@ -40,6 +41,7 @@ def index():
         "settings/index.html",
         saved_loc=saved_loc,
         auth_disabled=current_app.config.get("DISABLE_AUTH", False),
+        is_admin=is_admin_user(),
     )
 
 
