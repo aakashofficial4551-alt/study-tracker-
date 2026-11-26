@@ -131,6 +131,15 @@
     </a>
 </div>
 
+{% if is_admin %}
+<div class="card" style="padding:11px 16px; opacity:0.85;">
+    <a href="{{ url_for('admin.index') }}" style="display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:var(--text-muted); font-size:0.84rem; font-weight:600;">
+        <span>Admin</span>
+        <span>&rsaquo;</span>
+    </a>
+</div>
+{% endif %}
+
 <script>
     function syncThemeButtons() {
         const current = localStorage.getItem('ur_theme') || 'dark';
