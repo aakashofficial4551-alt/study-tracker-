@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Admin - UR RECORDS{% endblock %}
+
+{% block content %}
+<style>
+    .admin-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+    .admin-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .badge-live {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: rgba(22, 199, 132, 0.16);
+        color: #16c784;
+    }
+    .badge-last {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 999px;
+        background: var(--bg-surface);
+        color: var(--text-muted);
+    }
+    .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin: 10px 0;
+    }
+    .mini-stat {
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 8px 6px;
+        text-align: center;
+    }
+    .mini-stat small {
+        display: block;
+        font-size: 0.66rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    .mini-stat strong {
+        font-size: 0.92rem;
+        color: var(--text-main);
+    }
+    .loc-panel {
+        background: var(--bg-black);
+        border: 1px solid var(--border-subtle);
+        border-radius: 11px;
+        padding: 10px 12px;
+        font-size: 0.82rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <h1>Users ({{ user_cards|length }})</h1>
+    <button type="button" class="btn btn-dark btn-sm" onclick="location.reload()">Refresh</button>
+</div>
+
+{% for item in user_cards %}
+<div class="admin-card">
+    <div class="admin-top">
+        <div>
+            <strong style="font-size:1.02rem;">{{ item.user.full_name or item.user.username }}</strong>
+            <div style="font-size:0.78rem; color:var(--text-muted);">@{{ item.user.username }} • ID #{{ item.user.id }}</div>
+        </div>
+        {% if item.is_online %}
+            <span class="badge-live">Live Now</span>
+        {% else %}
+            <span class="badge-last">{{ item.updated }}</span>
+        {% endif %}
+    </div>
+
+    <div class="mini-grid">
+        <div class="mini-stat"><small>Task</small><strong>{{ item.task_days }}d</strong></div>
+        <div class="mini-stat"><small>Timer</small><strong>{{ item.study_mins }}m</strong></div>
+        <div class="mini-stat"><small>Gym</small><strong>{{ item.gym_days }}</strong></div>
+        <div class="mini-stat"><small>Tests</small><strong>{{ item.tests_count }}</strong></div>
+    </div>
+
+    <div class="loc-panel">
+        <div>
+            {% if item.lat is not none and item.lng is not none %}
+                <div style="font-weight:700; color:#16c784;">{{ '%.5f'|format(item.lat) }}, {{ '%.5f'|format(item.lng) }}</div>
+                <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
+                    {% if item.acc %}Accuracy: {{ '%.0f'|format(item.acc) }}m • {% endif %}{{ item.updated }}
+                </div>
+            {% else %}
+                <span style="color:var(--text-muted);">Location not captured yet</span>
+            {% endif %}
+        </div>
+
+        {% if item.lat is not none and item.lng is not none %}
+            <a href="https://www.google.com/maps?q={{ item.lat }},{{ item.lng }}" target="_blank" class="btn btn-sm">Map</a>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
