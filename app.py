@@ -30,6 +30,7 @@ from routes.habits import habits_bp
 from routes.gym import gym_bp
 from routes.settings import settings_bp
 from routes.rest import rest_bp
+from routes.admin import admin_bp
 
 _ICON_CACHE = {}
 
@@ -176,6 +177,7 @@ def create_app():
     app.register_blueprint(gym_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(rest_bp)
+    app.register_blueprint(admin_bp)
 
     @app.before_request
     def auto_login_owner():
