@@ -1,116 +1,111 @@
-{% extends "base.html" %}
-{% block title %}Admin - UR RECORDS{% endblock %}
+from datetime import datetime, timedelta
+from flask import Blueprint, render_template, abort, redirect, url_for, flash
+from flask_login import login_required, current_user, logout_user
+from sqlalchemy import or_
 
-{% block content %}
-<style>
-    .admin-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-subtle);
-        border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 12px;
-    }
-    .admin-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-    .badge-live {
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 3px 9px;
-        border-radius: 999px;
-        background: rgba(22, 199, 132, 0.16);
-        color: #16c784;
-    }
-    .badge-last {
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 3px 9px;
-        border-radius: 999px;
-        background: var(--bg-surface);
-        color: var(--text-muted);
-    }
-    .mini-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        margin: 10px 0;
-    }
-    .mini-stat {
-        background: var(--bg-black);
-        border: 1px solid var(--border-subtle);
-        border-radius: 10px;
-        padding: 8px 6px;
-        text-align: center;
-    }
-    .mini-stat small {
-        display: block;
-        font-size: 0.66rem;
-        color: var(--text-muted);
-        text-transform: uppercase;
-    }
-    .mini-stat strong {
-        font-size: 0.92rem;
-        color: var(--text-main);
-    }
-    .loc-panel {
-        background: var(--bg-black);
-        border: 1px solid var(--border-subtle);
-        border-radius: 11px;
-        padding: 10px 12px;
-        font-size: 0.82rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-    }
-</style>
+from extensions import db
+from models.user import User
+from models.settings import DeviceLocation
+from models.rest import LiveDevice, RestMessage
+from models.habits import DailyProgress
+from models.study_session import StudySession
+from models.gym import GymLog
+from models.mock_test import TestRecord
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-    <h1>Users ({{ user_cards|length }})</h1>
-    <button type="button" class="btn btn-dark btn-sm" onclick="location.reload()">Refresh</button>
-</div>
+admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
-{% for item in user_cards %}
-<div class="admin-card">
-    <div class="admin-top">
-        <div>
-            <strong style="font-size:1.02rem;">{{ item.user.full_name or item.user.username }}</strong>
-            <div style="font-size:0.78rem; color:var(--text-muted);">@{{ item.user.username }} • ID #{{ item.user.id }}</div>
-        </div>
-        {% if item.is_online %}
-            <span class="badge-live">Live Now</span>
-        {% else %}
-            <span class="badge-last">{{ item.updated }}</span>
-        {% endif %}
-    </div>
+ADMIN_USERNAMES = {"bikash", "admin", "urrecords"}
 
-    <div class="mini-grid">
-        <div class="mini-stat"><small>Task</small><strong>{{ item.task_days }}d</strong></div>
-        <div class="mini-stat"><small>Timer</small><strong>{{ item.study_mins }}m</strong></div>
-        <div class="mini-stat"><small>Gym</small><strong>{{ item.gym_days }}</strong></div>
-        <div class="mini-stat"><small>Tests</small><strong>{{ item.tests_count }}</strong></div>
-    </div>
 
-    <div class="loc-panel">
-        <div>
-            {% if item.lat is not none and item.lng is not none %}
-                <div style="font-weight:700; color:#16c784;">{{ '%.5f'|format(item.lat) }}, {{ '%.5f'|format(item.lng) }}</div>
-                <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
-                    {% if item.acc %}Accuracy: {{ '%.0f'|format(item.acc) }}m • {% endif %}{{ item.updated }}
-                </div>
-            {% else %}
-                <span style="color:var(--text-muted);">Location not captured yet</span>
-            {% endif %}
-        </div>
+def is_admin_user():
+    if not current_user.is_authenticated:
+        return False
+    uname = (current_user.username or "").strip().lower()
+    return uname in ADMIN_USERNAMES
 
-        {% if item.lat is not none and item.lng is not none %}
-            <a href="https://www.google.com/maps?q={{ item.lat }},{{ item.lng }}" target="_blank" class="btn btn-sm">Map</a>
-        {% endif %}
-    </div>
-</div>
-{% endfor %}
-{% endblock %}
+
+@admin_bp.route("/")
+@login_required
+def index():
+    if not is_admin_user():
+        abort(404)
+
+    users = User.query.order_by(User.id.asc()).all()
+    locations = {loc.user_id: loc for loc in DeviceLocation.query.all()}
+    live_devs = LiveDevice.query.order_by(LiveDevice.updated_at.desc()).all()
+    now_ist = datetime.utcnow() + timedelta(hours=5, minutes=30)
+
+    user_cards = []
+    for u in users:
+        loc = locations.get(u.id)
+        dev = next((d for d in live_devs if d.user_id == u.id), None)
+
+        lat = dev.latitude if (dev and dev.latitude is not None) else (loc.latitude if loc else None)
+        lng = dev.longitude if (dev and dev.longitude is not None) else (loc.longitude if loc else None)
+        acc = dev.accuracy if (dev and dev.accuracy is not None) else (loc.accuracy if loc else None)
+        updated = dev.updated_at if (dev and dev.updated_at) else (loc.updated_at if loc else None)
+
+        is_online = bool(updated and (now_ist - updated) <= timedelta(minutes=2))
+        study_secs = sum((s.duration or 0) for s in StudySession.query.filter_by(user_id=u.id).all())
+        task_days = DailyProgress.query.filter_by(user_id=u.id).count()
+        gym_days = GymLog.query.filter_by(user_id=u.id).count()
+        tests_count = TestRecord.query.filter_by(user_id=u.id).count()
+
+        uname_lower = (u.username or "").strip().lower()
+        can_delete = (u.id != current_user.id) and (uname_lower not in ADMIN_USERNAMES)
+
+        user_cards.append({
+            "user": u,
+            "lat": lat,
+            "lng": lng,
+            "acc": acc,
+            "updated": updated.strftime("%d %b %Y, %I:%M %p") if updated else "No GPS yet",
+            "is_online": is_online,
+            "study_mins": study_secs // 60,
+            "task_days": task_days,
+            "gym_days": gym_days,
+            "tests_count": tests_count,
+            "can_delete": can_delete,
+        })
+
+    return render_template("admin/index.html", user_cards=user_cards)
+
+
+@admin_bp.route("/delete-user/<int:user_id>", methods=["POST"])
+@login_required
+def delete_user(user_id):
+    if not is_admin_user():
+        abort(404)
+
+    target = User.query.get_or_404(user_id)
+    uname_lower = (target.username or "").strip().lower()
+
+    if target.id == current_user.id or uname_lower in ADMIN_USERNAMES:
+        flash("Admin account cannot be deleted from here.", "warning")
+        return redirect(url_for("admin.index"))
+
+    DailyProgress.query.filter_by(user_id=user_id).delete()
+    GymLog.query.filter_by(user_id=user_id).delete()
+    StudySession.query.filter_by(user_id=user_id).delete()
+    TestRecord.query.filter_by(user_id=user_id).delete()
+    DeviceLocation.query.filter_by(user_id=user_id).delete()
+    LiveDevice.query.filter_by(user_id=user_id).delete()
+    RestMessage.query.filter(
+        or_(RestMessage.sender_id == user_id, RestMessage.receiver_id == user_id)
+    ).delete(synchronize_session=False)
+
+    try:
+        from models.task import Task
+        Task.query.filter_by(user_id=user_id).delete()
+    except Exception:
+        pass
+
+    deleted_name = target.username
+    db.session.delete(target)
+    db.session.commit()
+
+    if current_user.id == user_id:
+        logout_user()
+
+    flash(f"User @{deleted_name} deleted.", "info")
+    return redirect(url_for("admin.index"))
